@@ -22,6 +22,12 @@ export interface Flight {
     date: string;
   };
   duration: string;
+  stops: number;
+  layovers?: {
+    duration: number;
+    name: string;
+    id: string;
+  }[];
   price: number;
   originalPrice?: number;
   discountPercent?: number;

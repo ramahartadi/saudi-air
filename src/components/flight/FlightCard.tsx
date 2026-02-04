@@ -49,7 +49,16 @@ export function FlightCard({ flight, onSelect, passengers = 1 }: FlightCardProps
                   <div className="h-0.5 flex-1 bg-foreground" />
                   <ArrowRight className="h-4 w-4" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Direct</p>
+                <div className="text-center">
+                  <p className={`text-[10px] font-black uppercase mt-1 ${flight.stops > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    {flight.stops === 0 ? 'Direct' : `${flight.stops} Stop${flight.stops > 1 ? 's' : ''}`}
+                  </p>
+                  {flight.layovers && flight.layovers.length > 0 && (
+                    <p className="text-[9px] text-muted-foreground font-bold truncate max-w-[120px]">
+                      via {flight.layovers.map(l => l.name).join(', ')}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Arrival */}

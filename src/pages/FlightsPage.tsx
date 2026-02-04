@@ -73,6 +73,13 @@ export default function FlightsPage() {
 
     const rawPrice = offer.price || 0;
     const finalPrice = rawPrice;
+
+    // Layovers processing
+    const layovers = (offer.layovers || []).map((l: any) => ({
+      duration: l.duration,
+      name: l.name,
+      id: l.id
+    }));
     
     return {
       id: Math.random().toString(36).substr(2, 9),
@@ -85,8 +92,8 @@ export default function FlightsPage() {
           name: firstSegment?.departure_airport?.name || '', 
           country: '' 
         },
-        time: firstSegment?.departure_airport?.time?.split(' ')[1] || '',
-        date: firstSegment?.departure_airport?.time?.split(' ')[0] || '',
+        time: firstSegment?.departure_airport?.time || '',
+        date: firstSegment?.departure_airport?.date || '',
       },
       arrival: {
         airport: { 
@@ -95,10 +102,12 @@ export default function FlightsPage() {
           name: lastSegment?.arrival_airport?.name || '', 
           country: '' 
         },
-        time: lastSegment?.arrival_airport?.time?.split(' ')[1] || '',
-        date: lastSegment?.arrival_airport?.time?.split(' ')[0] || '',
+        time: lastSegment?.arrival_airport?.time || '',
+        date: lastSegment?.arrival_airport?.date || '',
       },
       duration: durationStr,
+      stops: segments.length - 1,
+      layovers: layovers,
       price: finalPrice,
       currency: 'IDR',
       class: (offer.type || 'Economy').toLowerCase() as any,
