@@ -33,7 +33,7 @@ export interface Flight {
   discountPercent?: number;
   currency: string;
   class: 'economy' | 'business' | 'first';
-  seatsAvailable: number;
+  baggage: string;
   aircraft: string;
 }
 

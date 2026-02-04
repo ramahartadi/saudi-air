@@ -135,7 +135,7 @@ export default function AgentFlightsPage() {
       discountPercent: discountRate,
       currency: 'IDR',
       class: (offer.type || 'Economy').toLowerCase() as any,
-      seatsAvailable: 9,
+      baggage: offer.extensions?.find((e: string) => e.toLowerCase().includes('bag')) || '20kg included',
       aircraft: firstSegment?.airplane || 'N/A',
     };
   };

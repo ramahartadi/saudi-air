@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { 
   CreditCard, Loader2, ShieldCheck, 
   ArrowRight, Landmark, QrCode, Wallet,
-  Lock, CheckCircle2
+  Lock, CheckCircle2, Plane, Luggage
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -185,28 +185,63 @@ export default function CheckoutPage() {
           <aside className="space-y-6">
             <Card className="border-4 border-foreground shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none overflow-hidden">
               <CardHeader className="bg-foreground text-white border-b-4 border-foreground">
-                <CardTitle className="uppercase font-black italic text-sm">Detail Pembayaran</CardTitle>
+                <CardTitle className="uppercase font-black italic text-sm">Detail Pesanan</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-4 bg-slate-50">
-                <div className="space-y-2 border-b-2 border-slate-200 pb-4">
-                  <p className="text-[10px] font-black uppercase text-muted-foreground">Kode Booking</p>
-                  <p className="font-mono font-black text-xl text-primary">{booking.booking_reference}</p>
+              <CardContent className="p-0 bg-slate-50">
+                {/* Flight Summary */}
+                <div className="p-6 border-b-2 border-slate-200">
+                  <p className="text-[10px] font-black uppercase text-muted-foreground mb-4">Penerbangan</p>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-center">
+                      <p className="text-lg font-black font-mono leading-none">{booking.flight_data.departure.time}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">{booking.flight_data.departure.airport.code}</p>
+                    </div>
+                    <div className="flex flex-col items-center flex-1 px-4">
+                      <p className="text-[9px] font-black italic opacity-60 uppercase">{booking.flight_data.duration}</p>
+                      <div className="w-full h-0.5 bg-slate-300 relative">
+                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-slate-400" />
+                      </div>
+                      <p className="text-[8px] font-black uppercase text-primary mt-1">
+                        {booking.flight_data.stops === 0 ? 'Langsung' : `${booking.flight_data.stops} Transit`}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-lg font-black font-mono leading-none">{booking.flight_data.arrival.time}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">{booking.flight_data.arrival.airport.code}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-4 mt-4">
+                    <div className="bg-white border-2 border-foreground px-2 py-1 text-[9px] font-black uppercase italic flex items-center gap-1">
+                       <Plane className="h-3 w-3" /> {booking.flight_data.airline}
+                    </div>
+                    <div className="bg-blue-50 border-2 border-blue-600 text-blue-600 px-2 py-1 text-[9px] font-black uppercase italic flex items-center gap-1">
+                       <Luggage className="h-3 w-3" /> Bagasi: {booking.flight_data.baggage}
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold uppercase opacity-60">Harga Tiket</span>
-                    <span className="font-black">{booking.flight_data.currency} {booking.total_price.toLocaleString()}</span>
+
+                <div className="p-6 space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground">Kode Booking</p>
+                    <p className="font-mono font-black text-xl text-primary">{booking.booking_reference}</p>
                   </div>
-                  <div className="flex justify-between items-center text-emerald-600">
-                    <span className="text-xs font-bold uppercase">Biaya Layanan</span>
-                    <span className="font-black text-xs uppercase italic tracking-tighter">GRATIS</span>
-                  </div>
-                  <div className="pt-4 border-t-2 border-foreground flex justify-between items-end">
-                    <span className="text-xs font-black uppercase">Total Bayar</span>
-                    <span className="text-2xl font-black text-primary leading-none">
-                      {booking.flight_data.currency} {booking.total_price.toLocaleString()}
-                    </span>
+                  
+                  <div className="space-y-4 pt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold uppercase opacity-60">Harga Tiket ({booking.passengers_count}x)</span>
+                      <span className="font-black">{booking.flight_data.currency} {booking.total_price.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-emerald-600">
+                      <span className="text-xs font-bold uppercase">Biaya Layanan</span>
+                      <span className="font-black text-xs uppercase italic tracking-tighter">GRATIS</span>
+                    </div>
+                    <div className="pt-4 border-t-2 border-foreground flex justify-between items-end">
+                      <span className="text-xs font-black uppercase">Total Bayar</span>
+                      <span className="text-2xl font-black text-primary leading-none">
+                        {booking.flight_data.currency} {booking.total_price.toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </CardContent>

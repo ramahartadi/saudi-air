@@ -123,9 +123,9 @@ export function FlightCard({ flight, onSelect, passengers = 1 }: FlightCardProps
             <Plane className="h-3.5 w-3.5" />
             {flight.aircraft}
           </div>
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary border border-foreground text-rose-600">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary border border-foreground text-blue-600">
             <Luggage className="h-3.5 w-3.5" />
-            {flight.seatsAvailable} seats available
+            Baggage: {flight.baggage}
           </div>
         </div>
       </CardContent>

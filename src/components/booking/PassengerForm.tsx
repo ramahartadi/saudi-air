@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User } from 'lucide-react';
+import { BirthDatePicker } from './BirthDatePicker';
 
 interface PassengerFormData {
   title: string;
@@ -82,14 +83,11 @@ export function PassengerForm({ index, data, onChange }: PassengerFormProps) {
 
           {/* Date of Birth */}
           <div className="space-y-2">
-            <Label htmlFor={`dob-${index}`} className="font-bold uppercase text-xs">Date of Birth</Label>
-            <Input
-              id={`dob-${index}`}
-              type="date"
+            <Label className="font-bold uppercase text-xs">Date of Birth</Label>
+            <BirthDatePicker 
               value={data.dateOfBirth}
-              onChange={(e) => handleChange('dateOfBirth', e.target.value)}
-              className="border-2 border-foreground"
-              required
+              onChange={(v) => handleChange('dateOfBirth', v)}
+              label="Select Birth Date"
             />
           </div>
 
@@ -101,7 +99,7 @@ export function PassengerForm({ index, data, onChange }: PassengerFormProps) {
               value={data.nationality}
               onChange={(e) => handleChange('nationality', e.target.value)}
               placeholder="e.g., Indonesia"
-              className="border-2 border-foreground"
+              className="border-2 border-foreground h-10"
               required
             />
           </div>
@@ -114,21 +112,18 @@ export function PassengerForm({ index, data, onChange }: PassengerFormProps) {
               value={data.passportNumber}
               onChange={(e) => handleChange('passportNumber', e.target.value.toUpperCase())}
               placeholder="e.g., A12345678"
-              className="border-2 border-foreground font-mono"
+              className="border-2 border-foreground font-mono h-10"
               required
             />
           </div>
 
           {/* Passport Expiry */}
           <div className="space-y-2 md:col-span-3 lg:col-span-1">
-            <Label htmlFor={`passportExpiry-${index}`} className="font-bold uppercase text-xs">Passport Expiry</Label>
-            <Input
-              id={`passportExpiry-${index}`}
-              type="date"
+            <Label className="font-bold uppercase text-xs">Passport Expiry</Label>
+            <BirthDatePicker 
               value={data.passportExpiry}
-              onChange={(e) => handleChange('passportExpiry', e.target.value)}
-              className="border-2 border-foreground"
-              required
+              onChange={(v) => handleChange('passportExpiry', v)}
+              label="Select Expiry Date"
             />
           </div>
         </div>

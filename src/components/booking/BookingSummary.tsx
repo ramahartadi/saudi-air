@@ -58,21 +58,49 @@ export function BookingSummary({
           <div className="flex justify-between items-center">
             <div>
               <p className="font-bold text-lg">{flight.departure.airport.code}</p>
-              <p className="text-xs text-muted-foreground">{flight.departure.time}</p>
+              <p className="text-xs text-muted-foreground font-mono">{flight.departure.time}</p>
             </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">{flight.duration}</p>
-              <div className="w-16 h-0.5 bg-foreground my-1" />
+            <div className="text-center flex-1 px-2">
+              <p className="text-[10px] text-muted-foreground font-bold">{flight.duration}</p>
+              <div className="relative h-4 flex items-center justify-center">
+                <div className="w-full h-0.5 bg-foreground/20" />
+                <div className="absolute inset-0 flex items-center justify-center gap-1">
+                  {[...Array(flight.stops)].map((_, i) => (
+                    <div key={i} className="w-1.5 h-1.5 rounded-full bg-foreground border border-white" />
+                  ))}
+                </div>
+              </div>
+              <p className={`text-[10px] font-black uppercase ${flight.stops > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                {flight.stops === 0 ? 'Direct' : `${flight.stops} Stop${flight.stops > 1 ? 's' : ''}`}
+              </p>
             </div>
             <div className="text-right">
               <p className="font-bold text-lg">{flight.arrival.airport.code}</p>
-              <p className="text-xs text-muted-foreground">{flight.arrival.time}</p>
+              <p className="text-xs text-muted-foreground font-mono">{flight.arrival.time}</p>
             </div>
           </div>
           
-          <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            {flight.departure.date}
+          <div className="mt-3 flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+              <Calendar className="h-3.5 w-3.5" />
+              {flight.departure.date}
+            </div>
+            
+            <div className="flex items-center gap-2 text-xs font-bold text-blue-600">
+              <Luggage className="h-3.5 w-3.5" />
+              Baggage: {flight.baggage}
+            </div>
+
+            {flight.layovers && flight.layovers.length > 0 && (
+              <div className="bg-secondary/50 p-2 border border-foreground/10 text-[10px] font-bold">
+                <p className="uppercase text-muted-foreground mb-1">Transit Via:</p>
+                <ul className="list-disc list-inside">
+                  {flight.layovers.map((l, i) => (
+                    <li key={i}>{l.name} ({l.duration}m)</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
 

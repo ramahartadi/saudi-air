@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { baggageOptions } from '@/data/mockData';
 import { Flight } from '@/types/booking';
-import { ArrowLeft, Lock, Check, Plane, Users } from 'lucide-react';
+import { ArrowLeft, Lock, Check, Plane, Users, ArrowRight, Calendar, Luggage } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -258,11 +258,41 @@ export default function PaymentPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
                   <div>
-                    <p className="text-sm font-black text-muted-foreground uppercase">{flight.airline}</p>
-                    <p className="text-3xl font-black uppercase text-foreground">{flight.departure.airport.city} → {flight.arrival.airport.city}</p>
-                    <p className="text-xs font-bold text-muted-foreground mt-1 uppercase tracking-widest">{flight.departure.date} • {flight.duration}</p>
+                    <p className="text-sm font-black text-muted-foreground uppercase">{flight.airline} • {flight.flightNumber}</p>
+                    <p className="text-3xl font-black uppercase text-foreground leading-tight">
+                      {flight.departure.airport.city} <ArrowRight className="inline-block h-6 w-6 mx-2" /> {flight.arrival.airport.city}
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-4 mt-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-widest bg-secondary px-2 py-1 border border-foreground">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {flight.departure.date}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-widest bg-blue-50 px-2 py-1 border border-blue-200">
+                        <Luggage className="h-3.5 w-3.5" />
+                        Bag: {flight.baggage}
+                      </div>
+                      <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest px-2 py-1 border ${flight.stops > 0 ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+                        {flight.stops === 0 ? 'Direct Flight' : `${flight.stops} Stop(s)`}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6 bg-slate-50 p-4 border-2 border-slate-200 border-dashed">
+                    <div className="text-center">
+                      <p className="text-xl font-black font-mono">{flight.departure.time}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">{flight.departure.airport.code}</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <p className="text-[10px] font-black italic">{flight.duration}</p>
+                      <div className="w-10 h-0.5 bg-foreground" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xl font-black font-mono">{flight.arrival.time}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">{flight.arrival.airport.code}</p>
+                    </div>
                   </div>
                 </div>
 
