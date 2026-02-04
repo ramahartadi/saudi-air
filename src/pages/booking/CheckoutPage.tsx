@@ -248,8 +248,8 @@ export default function CheckoutPage() {
             </Card>
 
             <div className="bg-amber-400 p-4 border-4 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <p className="text-[10px] font-black uppercase text-center">
-                E-tiket akan otomatis dikirim <br /> ke email setelah pembayaran dikonfirmasi.
+              <p className="text-[10px] font-black uppercase text-center leading-tight">
+                E-tiket akan dikirim <br /> setelah booking confirmed
               </p>
             </div>
           </aside>

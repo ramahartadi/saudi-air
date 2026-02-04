@@ -124,6 +124,7 @@ export function PassengerForm({ index, data, onChange }: PassengerFormProps) {
               value={data.passportExpiry}
               onChange={(v) => handleChange('passportExpiry', v)}
               label="Select Expiry Date"
+              mode="expiry"
             />
           </div>
         </div>

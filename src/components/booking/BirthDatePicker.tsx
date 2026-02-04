@@ -23,24 +23,43 @@ interface BirthDatePickerProps {
   value?: string;
   onChange: (value: string) => void;
   label: string;
+  mode?: 'birth' | 'expiry';
 }
 
-export function BirthDatePicker({ value, onChange, label }: BirthDatePickerProps) {
+export function BirthDatePicker({ value, onChange, label, mode = 'birth' }: BirthDatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(
     value ? new Date(value) : undefined
   );
   const [isYearView, setIsYearView] = React.useState(false);
   const [open, setOpen] = React.useState(false);
 
-  const years = React.useMemo(() => {
+  const { fromYear, toYear } = React.useMemo(() => {
     const currentYear = new Date().getFullYear();
-    const startYear = 1920;
+    if (mode === 'expiry') {
+      return {
+        fromYear: currentYear,
+        toYear: currentYear + 20 // Allowing 20 years for flexibility
+      };
+    }
+    return {
+      fromYear: 1920,
+      toYear: currentYear
+    };
+  }, [mode]);
+
+  const years = React.useMemo(() => {
     const yearsArr = [];
-    for (let i = currentYear; i >= startYear; i--) {
-      yearsArr.push(i);
+    if (mode === 'expiry') {
+      for (let i = fromYear; i <= toYear; i++) {
+        yearsArr.push(i);
+      }
+    } else {
+      for (let i = toYear; i >= fromYear; i--) {
+        yearsArr.push(i);
+      }
     }
     return yearsArr;
-  }, []);
+  }, [fromYear, toYear, mode]);
 
   const handleSelectYear = (year: number) => {
     const currentProps = date || new Date();
@@ -92,7 +111,11 @@ export function BirthDatePicker({ value, onChange, label }: BirthDatePickerProps
                 <span className="font-black uppercase italic text-xs">Search Year</span>
               </div>
               <Command className="flex-1 rounded-none">
-                <CommandInput placeholder="Type year (e.g. 1990)..." className="h-10 border-b-2 border-foreground rounded-none px-4" autoFocus />
+                <CommandInput 
+                  placeholder={`Type year (e.g. ${mode === 'expiry' ? '2025' : '1990'})...`} 
+                  className="h-10 border-b-2 border-foreground rounded-none px-4" 
+                  autoFocus 
+                />
                 <CommandList className="max-h-none flex-1">
                   <CommandEmpty className="py-6 text-center font-bold text-xs">YEAR NOT FOUND.</CommandEmpty>
                   <CommandGroup>
@@ -130,8 +153,8 @@ export function BirthDatePicker({ value, onChange, label }: BirthDatePickerProps
                 month={date}
                 onMonthChange={setDate}
                 initialFocus
-                fromYear={1920}
-                toYear={new Date().getFullYear()}
+                fromYear={fromYear}
+                toYear={toYear}
                 className="rounded-none bg-white"
               />
             </>
@@ -141,3 +164,4 @@ export function BirthDatePicker({ value, onChange, label }: BirthDatePickerProps
     </div>
   );
 }
+
