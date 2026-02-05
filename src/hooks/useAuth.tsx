@@ -44,6 +44,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (data) {
+      // Cek apakah akun sudah disetujui (is_approved)
+      if (data.is_approved === false) {
+        console.warn("🚫 [Auth] Account not approved. Redirecting...");
+        toast.error("Akun Anda belum disetujui atau telah diblokir oleh admin.");
+        
+        // Langsung hapus session lokal & logout
+        localStorage.clear();
+        setSession(null);
+        setUser(null);
+        setRole(null);
+        setProfile(null);
+        await supabase.auth.signOut();
+        return;
+      }
+
       setProfile(data);
       setRole(data.role);
       localStorage.setItem(`role_${userId}`, data.role);

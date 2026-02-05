@@ -37,25 +37,29 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            phone: formData.phone,
-            role: formData.role,
-          }
-        }
-      });
+      // Simpan ke tabel pengajuan, bukan langsung mendaftar akun
+      const { error } = await supabase
+        .from('registration_requests')
+        .insert([{
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          role: formData.role
+          // Password tidak disimpan di sini karena alasan keamanan. 
+          // User akan membuat password baru saat menerima link undangan (Invite).
+        }]);
 
       if (error) {
-        toast.error(error.message);
+        if (error.code === '23505') {
+          toast.error('Email ini sudah pernah diajukan sebelumnya.');
+        } else {
+          toast.error(error.message);
+        }
         return;
       }
 
-      toast.success('Registration successful! Please check your email for verification.');
+      toast.success('Pengajuan akses berhasil dikirim! Mohon tunggu konfirmasi admin melalui email.');
       navigate('/login');
     } catch (error) {
       toast.error('An unexpected error occurred');
@@ -72,9 +76,9 @@ export default function RegisterPage() {
             <div className="h-14 w-14 border-2 border-foreground bg-primary flex items-center justify-center mx-auto mb-4">
               <Plane className="h-7 w-7 text-primary-foreground" />
             </div>
-            <CardTitle className="text-2xl">Create Account</CardTitle>
+            <CardTitle className="text-2xl">Request Access</CardTitle>
             <p className="text-muted-foreground text-sm">
-              Join SkyBook to manage your bookings
+              Register your interest to join SkyBook
             </p>
           </CardHeader>
           <CardContent className="p-6">
@@ -155,46 +159,14 @@ export default function RegisterPage() {
                 </Select>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="font-bold uppercase text-xs">
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => handleChange('password', e.target.value)}
-                      placeholder="••••••••"
-                      className="border-2 border-foreground pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="font-bold uppercase text-xs">
-                    Confirm
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                    placeholder="••••••••"
-                    className="border-2 border-foreground"
-                    required
-                  />
-                </div>
-              </div>
+              {/* Password fields removed because this is now a request-access form */}
 
               <Button 
                 type="submit" 
                 className="w-full h-12 shadow-sm"
                 disabled={isLoading}
               >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
+                {isLoading ? 'Sending Request...' : 'Send Request'}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </form>

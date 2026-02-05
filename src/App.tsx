@@ -16,6 +16,7 @@ import ConfirmationPage from "./pages/booking/ConfirmationPage";
 import BookingDetailPage from "./pages/booking/BookingDetailPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ManageUsers from "./pages/admin/ManageUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/booking/confirmation" element={<ConfirmationPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/admin/airports" element={<ManageAirports />} />
