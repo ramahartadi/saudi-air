@@ -24,6 +24,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -135,7 +142,7 @@ export default function ManageUsers() {
     }
   };
 
-  const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
+  const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected', customRole?: string) => {
     const loadingToast = toast.loading(`Processing request...`);
     try {
       if (action === 'approved') {
@@ -149,7 +156,7 @@ export default function ManageUsers() {
             firstName: req.first_name,
             lastName: req.last_name,
             phone: req.phone,
-            role: req.role,
+            role: customRole || req.role,
             redirectTo: `${window.location.origin}/reset-password`
           }
         });
@@ -159,14 +166,14 @@ export default function ManageUsers() {
       } else {
         const { error } = await supabase
           .from('registration_requests')
-          .update({ status: 'rejected' })
+          .delete()
           .eq('id', requestId);
 
         if (error) throw error;
-        toast.success(`Request rejected`, { id: loadingToast });
+        toast.success(`Request removed`, { id: loadingToast });
       }
 
-      setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: action } : r));
+      setRequests(prev => prev.filter(r => r.id !== requestId));
     } catch (error: any) {
       toast.error(error.message, { id: loadingToast });
     }
@@ -215,6 +222,7 @@ export default function ManageUsers() {
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-foreground text-white border-b-4 border-foreground">
                     <tr>
+                      <th className="p-4 font-black uppercase tracking-widest text-xs">User</th>
                       <th className="p-4 font-black uppercase tracking-widest text-xs">Role</th>
                       <th className="p-4 font-black uppercase tracking-widest text-xs">Status</th>
                       <th className="p-4 font-black uppercase tracking-widest text-xs">Joined</th>
@@ -224,7 +232,7 @@ export default function ManageUsers() {
                   <tbody className="divide-y-2 divide-foreground">
                     {loading && profiles.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="p-20 text-center font-black animate-pulse">SYNCING DATABASE...</td>
+                        <td colSpan={5} className="p-20 text-center font-black animate-pulse">SYNCING DATABASE...</td>
                       </tr>
                     ) : (
                       profiles.map((user) => (
@@ -332,9 +340,21 @@ export default function ManageUsers() {
                             </div>
                           </td>
                           <td className="p-4">
-                            <Badge variant="outline" className="border-2 border-foreground uppercase font-black text-[9px]">
-                              {req.role}
-                            </Badge>
+                            <Select 
+                              defaultValue={req.role} 
+                              onValueChange={(val) => {
+                                setRequests(prev => prev.map(r => r.id === req.id ? { ...r, role: val } : r));
+                              }}
+                            >
+                              <SelectTrigger className="h-8 border-2 border-foreground uppercase font-black text-[9px] w-[100px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-white border-2 border-foreground">
+                                <SelectItem value="user">USER</SelectItem>
+                                <SelectItem value="agent">AGENT</SelectItem>
+                                <SelectItem value="admin">ADMIN</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </td>
                           <td className="p-4">
                             <Badge className={`uppercase font-black text-[9px] border-2 border-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]

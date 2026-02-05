@@ -37,7 +37,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'Skybook <onboarding@resend.dev>', // Temporarily using onboarding@resend.dev for better compatibility if not verified
+        from: 'Skybook <no-reply@autoen.id>',
         to: [email],
         subject: isPaid ? `[RECEIPT] Bukti Pembelian - ${bookingRef}` : `[INVOICE] Tagihan Pembayaran - ${bookingRef}`,
         html: `

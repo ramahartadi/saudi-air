@@ -45,25 +45,49 @@ serve(async (req) => {
     
     console.log(`Processing invite for: ${email}, redirecting to: ${redirectTo}`)
 
-    // 3. Eksekusi Invite
-    const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-        phone: phone,
-        role: role,
-        is_approved: true
-      },
-      redirectTo: redirectTo || `${new URL(req.headers.get('origin') || 'http://localhost:5173').origin}/reset-password`
+    // 3. Generate Link (Bukan invite langsung agar kita bisa kirim email custom)
+    const { data: inviteData, error: inviteError } = await adminClient.auth.admin.generateLink({
+      type: 'invite',
+      email: email,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone,
+          role: role,
+          is_approved: true
+        },
+        redirectTo: redirectTo || `${new URL(req.headers.get('origin') || 'http://localhost:5173').origin}/reset-password`
+      }
     })
 
     if (inviteError) throw inviteError
 
-    // 4. Update status request
+    // 4. Kirim Email Custom menggunakan fungsi lain atau langsung
+    try {
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/auth-notification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+        },
+        body: JSON.stringify({
+          type: 'request_approved',
+          email: email,
+          firstName: firstName,
+          role: role,
+          link: inviteData.properties.action_link
+        })
+      })
+    } catch (emailError) {
+      console.error('Error sending custom verification email:', emailError)
+    }
+
+    // 4. Hapus request setelah berhasil di-acc agar tidak menumpuk
     if (requestId) {
       await adminClient
         .from('registration_requests')
-        .update({ status: 'approved' })
+        .delete()
         .eq('id', requestId)
     }
 

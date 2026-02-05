@@ -55,6 +55,7 @@ export function AdminLayout({ children, showSearch = true }: AdminLayoutProps) {
     { label: 'Overview', icon: LayoutDashboard, href: '/admin/dashboard' },
     { label: 'Manage Users', icon: Users, href: '/admin/users' },
     { label: 'Airports', icon: Plane, href: '/admin/airports' },
+    { label: 'Airlines', icon: Plane, href: '/admin/airlines' },
     { label: 'Bookings', icon: ClipboardList, href: '/admin/bookings' },
     { label: 'Flights', icon: Plane, href: '/admin/flights' },
     { label: 'Settings', icon: Settings, href: '/admin/settings' },

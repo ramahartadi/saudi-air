@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,11 +16,28 @@ serve(async (req) => {
     const { action, params } = await req.json()
     
     const SEARCHAPI_API_KEY = Deno.env.get('SEARCHAPI_API_KEY')
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const BASE_URL = 'https://www.searchapi.io/api/v1/search'
 
     if (!SEARCHAPI_API_KEY) {
       throw new Error('SearchApi API key is not configured.')
     }
+
+    // Initialize Admin Client to bypass RLS
+    const adminClient = createClient(
+      SUPABASE_URL ?? '',
+      SUPABASE_SERVICE_ROLE_KEY ?? ''
+    )
+
+    // Fetch active airlines from database
+    const { data: managedAirlines } = await adminClient
+      .from('managed_airlines')
+      .select('code')
+      .eq('is_active', true)
+
+    const airlineFilter = managedAirlines?.map(a => a.code).join(',')
+    console.log('Active airline filter:', airlineFilter)
 
     if (action === 'search-flights' || action === 'get-featured') {
       let finalParams: any = {
@@ -53,6 +71,11 @@ serve(async (req) => {
         } else {
           finalParams.flight_type = 'one_way'
         }
+      }
+
+      // Add Airline Filter if available
+      if (airlineFilter) {
+        finalParams.included_airline_codes = airlineFilter
       }
 
       const searchParams = new URLSearchParams(finalParams)

@@ -59,6 +59,20 @@ export default function RegisterPage() {
         return;
       }
 
+      // Kirim email notifikasi bahwa request diterima
+      try {
+        await supabase.functions.invoke('auth-notification', {
+          body: {
+            type: 'request_received',
+            email: formData.email,
+            firstName: formData.firstName
+          }
+        });
+      } catch (emailError) {
+        console.error('Error sending notification email:', emailError);
+        // Kita tidak menghentikan proses jika email gagal dikirim
+      }
+
       toast.success('Pengajuan akses berhasil dikirim! Mohon tunggu konfirmasi admin melalui email.');
       navigate('/login');
     } catch (error) {
