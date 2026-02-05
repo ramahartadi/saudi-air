@@ -40,8 +40,10 @@ serve(async (req) => {
       throw new Error(`Akses ditolak. Role Anda adalah: ${profile?.role || 'tidak ada'}`)
     }
 
-    const { email, firstName, lastName, phone, role, requestId } = await req.json()
-    console.log(`Admin ${user.email} mengundang: ${email}`)
+    const body = await req.json()
+    const { email, firstName, lastName, phone, role, requestId, redirectTo } = body
+    
+    console.log(`Processing invite for: ${email}, redirecting to: ${redirectTo}`)
 
     // 3. Eksekusi Invite
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
@@ -52,7 +54,7 @@ serve(async (req) => {
         role: role,
         is_approved: true
       },
-      redirectTo: `${new URL(req.headers.get('origin') || 'http://localhost:5173').origin}/reset-password`
+      redirectTo: redirectTo || `${new URL(req.headers.get('origin') || 'http://localhost:5173').origin}/reset-password`
     })
 
     if (inviteError) throw inviteError

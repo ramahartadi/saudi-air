@@ -149,7 +149,8 @@ export default function ManageUsers() {
             firstName: req.first_name,
             lastName: req.last_name,
             phone: req.phone,
-            role: req.role
+            role: req.role,
+            redirectTo: `${window.location.origin}/reset-password`
           }
         });
 
