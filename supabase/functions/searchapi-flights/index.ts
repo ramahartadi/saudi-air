@@ -75,7 +75,7 @@ serve(async (req) => {
 
       // Add Airline Filter if available
       if (airlineFilter) {
-        finalParams.included_airline_codes = airlineFilter
+        finalParams.included_airlines = airlineFilter
       }
 
       const searchParams = new URLSearchParams(finalParams)
