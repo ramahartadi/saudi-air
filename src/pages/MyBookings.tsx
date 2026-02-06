@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plane, Calendar, CreditCard, Loader2, ArrowRight, MapPin, Clock, Users, ChevronRight } from 'lucide-react';
+import { Plane, Calendar, CreditCard, Loader2, ArrowRight, MapPin, Clock, Users, ChevronRight, Ticket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -237,9 +237,20 @@ export default function MyBookings() {
                             Pay Now <CreditCard className="h-4 w-4" />
                           </Button>
                         )}
+                        {booking.status === 'Success' && booking.eticket_url && (
+                          <Button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(booking.eticket_url, '_blank');
+                            }}
+                            className="w-full mt-6 border-4 border-foreground h-12 font-black uppercase italic bg-emerald-500 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] active:translate-y-0 transition-all text-sm flex items-center justify-center gap-2"
+                          >
+                            View E-Ticket <Ticket className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button 
                           onClick={() => navigate(`/booking/detail/${booking.id}`)}
-                          className={`w-full ${booking.status === 'Pending' ? 'mt-0' : 'mt-6'} border-2 border-foreground h-12 font-black uppercase italic shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] active:translate-y-0 transition-all text-sm flex items-center justify-center gap-2`}
+                          className={`w-full ${booking.status === 'Pending' || (booking.status === 'Success' && booking.eticket_url) ? 'mt-0' : 'mt-6'} border-2 border-foreground h-12 font-black uppercase italic shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] active:translate-y-0 transition-all text-sm flex items-center justify-center gap-2`}
                         >
                           Detail <ChevronRight className="h-4 w-4" />
                         </Button>

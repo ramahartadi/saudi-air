@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Plane, User, Users, ArrowLeft, Save, Trash2, 
-  Plus, Loader2, ChevronRight, FileText, CalendarIcon, MapPin, Printer, X, CreditCard, Download 
+  Plus, Loader2, ChevronRight, FileText, CalendarIcon, MapPin, Printer, X, CreditCard, Download, Ticket 
 } from 'lucide-react';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
@@ -417,6 +417,15 @@ export default function BookingDetailPage() {
                 className="w-full h-14 border-4 border-foreground bg-primary text-white font-black uppercase italic shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] active:translate-y-0 transition-all flex items-center justify-center gap-2"
               >
                 <CreditCard className="h-5 w-5" /> Complete Payment
+              </Button>
+            )}
+
+            {booking.status === 'Success' && booking.eticket_url && (
+              <Button 
+                onClick={() => window.open(booking.eticket_url, '_blank')}
+                className="w-full h-14 border-4 border-foreground bg-emerald-500 text-white font-black uppercase italic shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] active:translate-y-0 transition-all flex items-center justify-center gap-2"
+              >
+                <Ticket className="h-5 w-5" /> View Official E-Ticket
               </Button>
             )}
 
