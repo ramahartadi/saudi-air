@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { baggageOptions } from '@/data/mockData';
 import { Flight } from '@/types/booking';
-import { ArrowLeft, Lock, Check, Plane, Users, ArrowRight, Calendar, Luggage } from 'lucide-react';
+import { ArrowLeft, Lock, Check, Plane, Users, ArrowRight, Calendar, Luggage, Wifi, Tv, PlugZap, Leaf, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -47,7 +47,7 @@ export default function PaymentPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  const initialPassengerCount = parseInt(searchParams.get('passengers') || '1');
+  const initialPassengerCount = Math.min(parseInt(searchParams.get('passengers') || '1'), 5);
   
   const [flight, setFlight] = useState<Flight | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -222,7 +222,7 @@ export default function PaymentPage() {
                       <SelectValue placeholder="Passengers" />
                     </SelectTrigger>
                     <SelectContent className="border-4 border-foreground rounded-none">
-                      {[...Array(40)].map((_, i) => (
+                      {[...Array(5)].map((_, i) => (
                         <SelectItem key={i + 1} value={(i + 1).toString()} className="font-black">
                           {i + 1} {i === 0 ? 'Traveler' : 'Travelers'}
                         </SelectItem>
@@ -254,30 +254,55 @@ export default function PaymentPage() {
               <CardHeader className="border-b-4 border-foreground bg-primary text-primary-foreground">
                 <CardTitle className="uppercase italic font-black flex items-center gap-3">
                   <Plane className="h-6 w-6" />
-                  Trip Details
+                  Trip Details {flight.isRoundTrip && "(Round Trip)"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
+                {/* Outbound Leg */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
-                  <div>
+                  <div className="flex-1">
+                    <span className="text-[10px] font-black uppercase bg-foreground text-white px-2 py-0.5 mb-2 inline-block">Outbound</span>
                     <p className="text-sm font-black text-muted-foreground uppercase">{flight.airline} • {flight.flightNumber}</p>
-                    <p className="text-3xl font-black uppercase text-foreground leading-tight">
-                      {flight.departure.airport.city} <ArrowRight className="inline-block h-6 w-6 mx-2" /> {flight.arrival.airport.city}
+                    <p className="text-2xl font-black uppercase text-foreground leading-tight">
+                      {flight.departure.airport.city} <ArrowRight className="inline-block h-5 w-5 mx-2" /> {flight.arrival.airport.city}
                     </p>
                     
                     <div className="flex flex-wrap gap-4 mt-3">
-                      <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-widest bg-secondary px-2 py-1 border border-foreground">
-                        <Calendar className="h-3.5 w-3.5" />
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-secondary px-2 py-1 border border-foreground">
+                        <Calendar className="h-3 w-3" />
                         {flight.departure.date}
                       </div>
-                      <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-widest bg-blue-50 px-2 py-1 border border-blue-200">
-                        <Luggage className="h-3.5 w-3.5" />
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 px-2 py-1 border border-blue-200">
+                        <Luggage className="h-3 w-3" />
                         Bag: {flight.baggage}
                       </div>
-                      <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest px-2 py-1 border ${flight.stops > 0 ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+                      <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest px-2 py-1 border ${flight.stops > 0 ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
                         {flight.stops === 0 ? 'Direct Flight' : `${flight.stops} Stop(s)`}
                       </div>
                     </div>
+
+                    {/* Amenities / Extensions */}
+                    {flight.extensions && flight.extensions.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {flight.extensions.map((ext, i) => {
+                          const isWifi = ext.toLowerCase().includes('wi-fi');
+                          const isPower = ext.toLowerCase().includes('power') || ext.toLowerCase().includes('usb');
+                          const isVideo = ext.toLowerCase().includes('video');
+                          const isCarbon = ext.toLowerCase().includes('carbon');
+                          
+                          return (
+                            <span key={i} className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 border border-slate-200 text-[9px] font-bold uppercase tracking-tight text-slate-600">
+                              {isWifi && <Wifi className="h-3 w-3" />}
+                              {isPower && <PlugZap className="h-3 w-3" />}
+                              {isVideo && <Tv className="h-3 w-3" />}
+                              {isCarbon && <Leaf className="h-3 w-3" />}
+                              {!isWifi && !isPower && !isVideo && !isCarbon && <Info className="h-3 w-3" />}
+                              {ext}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-6 bg-slate-50 p-4 border-2 border-slate-200 border-dashed">
@@ -295,6 +320,67 @@ export default function PaymentPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Return Leg */}
+                {flight.isRoundTrip && flight.returnFlight && (
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6 pt-6 border-t-2 border-dashed border-muted-foreground/30">
+                    <div className="flex-1">
+                      <span className="text-[10px] font-black uppercase bg-primary text-white px-2 py-0.5 mb-2 inline-block">Return Trip</span>
+                      <p className="text-sm font-black text-muted-foreground uppercase">{flight.returnFlight.airline} • {flight.returnFlight.flightNumber}</p>
+                      <p className="text-2xl font-black uppercase text-foreground leading-tight">
+                        {flight.returnFlight.departure.airport.city} <ArrowRight className="inline-block h-5 w-5 mx-2" /> {flight.returnFlight.arrival.airport.city}
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-4 mt-3">
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-secondary px-2 py-1 border border-foreground">
+                          <Calendar className="h-3 w-3" />
+                          {flight.returnFlight.departure.date}
+                        </div>
+                        <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest px-2 py-1 border ${flight.returnFlight.stops > 0 ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+                          {flight.returnFlight.stops === 0 ? 'Direct Flight' : `${flight.returnFlight.stops} Stop(s)`}
+                        </div>
+                      </div>
+
+                      {/* Amenities / Extensions */}
+                      {flight.returnFlight.extensions && flight.returnFlight.extensions.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          {flight.returnFlight.extensions.map((ext, i) => {
+                            const isWifi = ext.toLowerCase().includes('wi-fi');
+                            const isPower = ext.toLowerCase().includes('power') || ext.toLowerCase().includes('usb');
+                            const isVideo = ext.toLowerCase().includes('video');
+                            const isCarbon = ext.toLowerCase().includes('carbon');
+                            
+                            return (
+                              <span key={i} className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-200 text-[9px] font-bold uppercase tracking-tight text-amber-700">
+                                {isWifi && <Wifi className="h-3 w-3" />}
+                                {isPower && <PlugZap className="h-3 w-3" />}
+                                {isVideo && <Tv className="h-3 w-3" />}
+                                {isCarbon && <Leaf className="h-3 w-3" />}
+                                {!isWifi && !isPower && !isVideo && !isCarbon && <Info className="h-3 w-3" />}
+                                {ext}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-6 bg-slate-50 p-4 border-2 border-slate-200 border-dashed">
+                      <div className="text-center">
+                        <p className="text-xl font-black font-mono">{flight.returnFlight.departure.time}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">{flight.returnFlight.departure.airport.code}</p>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <p className="text-[10px] font-black italic">{flight.returnFlight.duration || flight.duration}</p>
+                        <div className="w-10 h-0.5 bg-foreground" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xl font-black font-mono">{flight.returnFlight.arrival.time}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">{flight.returnFlight.arrival.airport.code}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-4 border-t-2 border-foreground/10 pt-4">
                   <div className="flex justify-between font-bold">

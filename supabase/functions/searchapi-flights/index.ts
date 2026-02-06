@@ -30,16 +30,26 @@ serve(async (req) => {
       SUPABASE_SERVICE_ROLE_KEY ?? ''
     )
 
-    // Fetch active airlines from database
-    const { data: managedAirlines } = await adminClient
-      .from('managed_airlines')
-      .select('code')
-      .eq('is_active', true)
+    // Fetch active airlines and flight settings
+    const [airlinesRes, settingsRes] = await Promise.all([
+      adminClient.from('managed_airlines').select('code, baggage_info').eq('is_active', true),
+      adminClient.from('app_settings').select('value').eq('id', 'flight_settings').single()
+    ])
+
+    const managedAirlines = airlinesRes.data
+    const settings = settingsRes.data?.value || {}
+    const maxPriceOneWay = settings.maxPriceOneWay || 999999999
+    const maxPriceRoundTrip = settings.maxPriceRoundTrip || 999999999
 
     const airlineFilter = managedAirlines?.map(a => a.code).join(',')
     console.log('Active airline filter:', airlineFilter)
 
     if (action === 'search-flights' || action === 'get-featured') {
+      const tripType = params?.tripType || 'one-way'
+      const applicableLimit = tripType === 'round-trip' ? maxPriceRoundTrip : maxPriceOneWay
+
+      console.log(`Trip Type: ${tripType}, Applicable limit: ${applicableLimit}`)
+
       let finalParams: any = {
         engine: 'google_flights',
         api_key: SEARCHAPI_API_KEY,
@@ -56,7 +66,8 @@ serve(async (req) => {
           flight_type: 'one_way'
         }
       } else {
-        const { origin, destination, date, returnDate, tripType, adults } = params
+        const { origin, destination, date, returnDate, tripType, adults, departure_token, booking_token } = params
+        
         finalParams = {
           ...finalParams,
           departure_id: origin,
@@ -78,10 +89,26 @@ serve(async (req) => {
         finalParams.included_airlines = airlineFilter
       }
 
+      // Add Max Price Filter if available (SearchApi native param)
+      if (applicableLimit && applicableLimit < 999999999) {
+        finalParams.max_price = applicableLimit.toString()
+      }
+
       const searchParams = new URLSearchParams(finalParams)
 
       const response = await fetch(`${BASE_URL}?${searchParams.toString()}`)
       const data = await response.json()
+
+      // Filter by max price and ensure price > 0
+      if (data.best_flights) {
+        data.best_flights = data.best_flights.filter((f: any) => (f.price || 0) > 0 && (f.price || 0) <= applicableLimit)
+      }
+      if (data.other_flights) {
+        data.other_flights = data.other_flights.filter((f: any) => (f.price || 0) > 0 && (f.price || 0) <= applicableLimit)
+      }
+
+      // Add managed airlines info to the response for baggage lookup
+      data.managed_airlines = managedAirlines || []
 
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -119,7 +119,13 @@ export function FlightSearchForm() {
             id="departure"
             type="date"
             value={departureDate}
-            onChange={(e) => setDepartureDate(e.target.value)}
+            onChange={(e) => {
+              const newDate = e.target.value;
+              setDepartureDate(newDate);
+              if (returnDate && newDate > returnDate) {
+                setReturnDate('');
+              }
+            }}
             required
             className="border-2 border-foreground h-12 font-bold focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all rounded-none"
           />
@@ -135,6 +141,7 @@ export function FlightSearchForm() {
               id="return"
               type="date"
               value={returnDate}
+              min={departureDate}
               onChange={(e) => setReturnDate(e.target.value)}
               className="border-2 border-foreground h-12 font-bold focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all rounded-none"
             />
@@ -151,7 +158,7 @@ export function FlightSearchForm() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-background border-2 border-foreground rounded-none">
-              {[...Array(40)].map((_, i) => (
+              {[...Array(5)].map((_, i) => (
                 <SelectItem key={i + 1} value={(i + 1).toString()} className="font-bold">
                   {i + 1} {(i + 1) === 1 ? 'Traveler' : 'Travelers'}
                 </SelectItem>

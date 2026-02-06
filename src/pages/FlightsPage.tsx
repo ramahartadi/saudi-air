@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { FlightCard } from '@/components/flight/FlightCard';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { Flight } from '@/types/booking';
 import { ArrowLeft, Plane, Loader2, Calendar } from 'lucide-react';
@@ -31,6 +32,7 @@ export default function FlightsPage() {
   const [cheapDates, setCheapDates] = useState<CheapDate[]>([]);
   const [loading, setLoading] = useState(true);
   const [eurRate, setEurRate] = useState<number | null>(null);
+  const [selectedOutbound, setSelectedOutbound] = useState<Flight | null>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -61,10 +63,47 @@ export default function FlightsPage() {
     }
   }, [role, authLoading, navigate, searchParams]);
 
-  const mapSearchApiToFlight = (offer: any): Flight => {
+  const mapSearchApiToFlight = (offer: any, managedAirlines: any[] = []): Flight => {
     const segments = offer.flights || [];
-    const firstSegment = segments[0];
-    const lastSegment = segments[segments.length - 1];
+    const isRoundTrip = tripType === 'round-trip' && segments.length > 1;
+    
+    let outboundSegments = [];
+    let returnSegments = [];
+
+    if (isRoundTrip) {
+      let foundReturn = false;
+      const targetDest = destination?.toUpperCase();
+      
+      for (const s of segments) {
+        const currentDep = s.departure_airport?.id?.toUpperCase();
+        if (!foundReturn && currentDep === targetDest) {
+          foundReturn = true;
+        }
+        if (foundReturn) returnSegments.push(s);
+        else outboundSegments.push(s);
+      }
+      
+      if (returnSegments.length === 0 && segments.length > 1) {
+        let splitIdx = -1;
+        for (let i = 0; i < segments.length - 1; i++) {
+          if (segments[i].arrival_airport?.id?.toUpperCase() === targetDest) {
+            splitIdx = i + 1;
+            break;
+          }
+        }
+        if (splitIdx !== -1) {
+          outboundSegments = segments.slice(0, splitIdx);
+          returnSegments = segments.slice(splitIdx);
+        } else {
+          outboundSegments = segments;
+        }
+      }
+    } else {
+      outboundSegments = segments;
+    }
+
+    const firstOut = outboundSegments[0];
+    const lastOut = outboundSegments[outboundSegments.length - 1];
     
     const durationTotal = offer.total_duration || 0;
     const hours = Math.floor(durationTotal / 60);
@@ -72,48 +111,82 @@ export default function FlightsPage() {
     const durationStr = `${hours}h ${minutes}m`;
 
     const rawPrice = offer.price || 0;
-    const finalPrice = rawPrice;
-
-    // Layovers processing
-    const layovers = (offer.layovers || []).map((l: any) => ({
-      duration: l.duration,
-      name: l.name,
-      id: l.id
-    }));
     
-    return {
+    // Manual Baggage Logic
+    const airlineCode = firstOut?.flight_number?.split(' ')[0];
+    const dbAirline = managedAirlines.find(a => a.code === airlineCode);
+    const manualBaggage = dbAirline?.baggage_info;
+
+    const baseFlight: any = {
       id: Math.random().toString(36).substr(2, 9),
-      flightNumber: firstSegment?.flight_number || 'N/A',
-      airline: firstSegment?.airline || 'Unknown Airline',
+      flightNumber: firstOut?.flight_number || 'N/A',
+      airline: dbAirline?.name || firstOut?.airline || 'Unknown Airline',
       departure: {
         airport: { 
-          code: firstSegment?.departure_airport?.id || '', 
-          city: firstSegment?.departure_airport?.name || '', 
-          name: firstSegment?.departure_airport?.name || '', 
+          code: firstOut?.departure_airport?.id || '', 
+          city: firstOut?.departure_airport?.name || '', 
+          name: firstOut?.departure_airport?.name || '', 
           country: '' 
         },
-        time: firstSegment?.departure_airport?.time || '',
-        date: firstSegment?.departure_airport?.date || '',
+        time: firstOut?.departure_airport?.time || '',
+        date: firstOut?.departure_airport?.date || '',
       },
       arrival: {
         airport: { 
-          code: lastSegment?.arrival_airport?.id || '', 
-          city: lastSegment?.arrival_airport?.name || '', 
-          name: lastSegment?.arrival_airport?.name || '', 
+          code: lastOut?.arrival_airport?.id || '', 
+          city: lastOut?.arrival_airport?.name || '', 
+          name: lastOut?.arrival_airport?.name || '', 
           country: '' 
         },
-        time: lastSegment?.arrival_airport?.time || '',
-        date: lastSegment?.arrival_airport?.date || '',
+        time: lastOut?.arrival_airport?.time || '',
+        date: lastOut?.arrival_airport?.date || '',
       },
       duration: durationStr,
-      stops: segments.length - 1,
-      layovers: layovers,
-      price: finalPrice,
+      stops: outboundSegments.length - 1,
+      price: rawPrice,
       currency: 'IDR',
       class: (offer.type || 'Economy').toLowerCase() as any,
-      baggage: offer.extensions?.find((e: string) => e.toLowerCase().includes('bag')) || '20kg included',
-      aircraft: firstSegment?.airplane || 'N/A',
+      baggage: manualBaggage || "20kg included",
+      aircraft: firstOut?.airplane || 'N/A',
+      extensions: firstOut?.extensions || [],
+      isRoundTrip: isRoundTrip && returnSegments.length > 0,
+      booking_token: offer.booking_token
     };
+
+    if (isRoundTrip && returnSegments.length > 0) {
+      const firstRet = returnSegments[0];
+      const lastRet = returnSegments[returnSegments.length - 1];
+      baseFlight.returnFlight = {
+        flightNumber: firstRet?.flight_number || 'N/A',
+        airline: firstRet?.airline || 'Unknown Airline',
+        departure: {
+          airport: { 
+            code: firstRet?.departure_airport?.id || '', 
+            city: firstRet?.departure_airport?.name || '', 
+            name: firstRet?.departure_airport?.name || '', 
+            country: '' 
+          },
+          time: firstRet?.departure_airport?.time || '',
+          date: firstRet?.departure_airport?.date || '',
+        },
+        arrival: {
+          airport: { 
+            code: lastRet?.arrival_airport?.id || '', 
+            city: lastRet?.arrival_airport?.name || '', 
+            name: lastRet?.arrival_airport?.name || '', 
+            country: '' 
+          },
+          time: lastRet?.arrival_airport?.time || '',
+          date: lastRet?.arrival_airport?.date || '',
+        },
+        duration: '', 
+        stops: returnSegments.length - 1,
+        aircraft: firstRet?.airplane || 'N/A',
+        extensions: firstRet?.extensions || [],
+      };
+    }
+    
+    return baseFlight;
   };
 
   const fetchSpecificFlights = async () => {
@@ -141,8 +214,10 @@ export default function FlightsPage() {
       ];
 
       if (combinedFlights.length > 0) {
-        const flightsData = combinedFlights.map((f: any) => mapSearchApiToFlight(f));
+        const flightsData = combinedFlights.map((f: any) => mapSearchApiToFlight(f, data.managed_airlines));
         setFlights(flightsData);
+      } else {
+        toast.error("Tidak ada penerbangan ditemukan.");
       }
     } catch (err: any) {
       console.error('Crash:', err);
@@ -152,17 +227,26 @@ export default function FlightsPage() {
     }
   };
 
-  const fetchCheapestDates = async () => {
-    setLoading(false);
-    toast.info("Cheapest dates search is not supported with SearchApi yet.");
+  const handleFlightSelect = (selectedFlight: Flight) => {
+    sessionStorage.setItem('selectedFlight', JSON.stringify(selectedFlight));
+    navigate(`/booking/payment?flightId=${selectedFlight.id}&passengers=${passengers}`);
+  };
+
+  const initialSearch = async () => {
+    await fetchSpecificFlights();
   };
 
   useEffect(() => {
     if (!authLoading && !role && origin && destination && eurRate !== null) {
-      if (departureDate) fetchSpecificFlights();
+      if (departureDate) initialSearch();
       else fetchCheapestDates();
     }
   }, [role, authLoading, origin, destination, departureDate, returnDate, tripType, eurRate]);
+
+  const fetchCheapestDates = async () => {
+    setLoading(false);
+    toast.info("Cheapest dates search is not supported with SearchApi yet.");
+  };
 
   // If loading auth or has role (waiting for redirect), show loader
   if (authLoading || role) {
@@ -190,7 +274,7 @@ export default function FlightsPage() {
                 {origin} <Plane className="h-6 w-6 inline text-primary" /> {destination}
               </h1>
               <p className="font-bold text-muted-foreground uppercase text-xs mt-2 bg-secondary inline-block px-2 py-1 border border-foreground">
-                Public Search Mode
+                Public Search Mode • {tripType.toUpperCase()}
               </p>
             </div>
           </div>
@@ -208,10 +292,7 @@ export default function FlightsPage() {
                 key={f.id} 
                 flight={f} 
                 passengers={passengers}
-                onSelect={(selectedFlight) => {
-                  sessionStorage.setItem('selectedFlight', JSON.stringify(selectedFlight));
-                  navigate(`/booking/payment?flightId=${selectedFlight.id}&passengers=${passengers}`);
-                }} 
+                onSelect={handleFlightSelect} 
               />
             ))}
           </div>

@@ -7,8 +7,7 @@ export interface Airport {
   country: string;
 }
 
-export interface Flight {
-  id: string;
+export interface FlightLeg {
   flightNumber: string;
   airline: string;
   departure: {
@@ -28,13 +27,22 @@ export interface Flight {
     name: string;
     id: string;
   }[];
+  aircraft: string;
+  extensions?: string[];
+}
+
+export interface Flight extends FlightLeg {
+  id: string;
   price: number;
   originalPrice?: number;
   discountPercent?: number;
   currency: string;
   class: 'economy' | 'business' | 'first';
   baggage: string;
-  aircraft: string;
+  isRoundTrip?: boolean;
+  returnFlight?: FlightLeg;
+  departure_token?: string;
+  booking_token?: string;
 }
 
 export interface Seat {

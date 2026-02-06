@@ -348,17 +348,42 @@ export default function BookingDetailPage() {
                   </span>
                 </div>
                 <div className="text-center py-4 bg-white/5 border-2 border-white/20">
-                  <p className="text-3xl font-black">{booking.flight_data.departure.airport.code} → {booking.flight_data.arrival.airport.code}</p>
-                  <p className="text-xs font-bold mt-2 opacity-80">{booking.flight_data.departure.date}</p>
+                  <div className="space-y-4">
+                    <div>
+                      <span className="text-[10px] font-black uppercase opacity-60 block mb-1">Outbound</span>
+                      <p className="text-2xl font-black leading-none">{booking.flight_data.departure.airport.code} → {booking.flight_data.arrival.airport.code}</p>
+                      <p className="text-[10px] font-bold mt-1 opacity-80">{booking.flight_data.departure.date}</p>
+                    </div>
+
+                    {booking.flight_data.isRoundTrip && booking.flight_data.returnFlight && (
+                      <div className="pt-4 border-t border-white/10">
+                        <span className="text-[10px] font-black uppercase opacity-60 block mb-1">Return</span>
+                        <p className="text-2xl font-black leading-none">{booking.flight_data.returnFlight.departure.airport.code} → {booking.flight_data.returnFlight.arrival.airport.code}</p>
+                        <p className="text-[10px] font-bold mt-1 opacity-80">{booking.flight_data.returnFlight.departure.date}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-xs font-black uppercase">
-                  <span>Airline</span>
+                <div className="flex justify-between items-center text-[10px] font-black uppercase">
+                  <span>Airline (Out)</span>
                   <span>{booking.flight_data.airline}</span>
                 </div>
-                <div className="flex justify-between items-center text-xs font-black uppercase">
-                  <span>Flight No</span>
+                <div className="flex justify-between items-center text-[10px] font-black uppercase">
+                  <span>Flight (Out)</span>
                   <span>{booking.flight_data.flightNumber}</span>
                 </div>
+                {booking.flight_data.isRoundTrip && booking.flight_data.returnFlight && (
+                  <>
+                    <div className="flex justify-between items-center text-[10px] font-black uppercase">
+                      <span>Airline (Ret)</span>
+                      <span>{booking.flight_data.returnFlight.airline}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px] font-black uppercase">
+                      <span>Flight (Ret)</span>
+                      <span>{booking.flight_data.returnFlight.flightNumber}</span>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -464,8 +489,23 @@ export default function BookingDetailPage() {
                       <td className="p-2 border border-slate-300">1</td>
                       <td className="p-2 border border-slate-300 font-bold">Akomodasi Penerbangan</td>
                       <td className="p-2 border border-slate-300">
-                        {booking.flight_data.airline} ({booking.flight_data.flightNumber})<br/>
-                        {booking.flight_data.departure.airport.city} &rarr; {booking.flight_data.arrival.airport.city}
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-[8px] font-black uppercase px-1 bg-slate-200 mr-1">Pergi</span>
+                            <strong>{booking.flight_data.airline} ({booking.flight_data.flightNumber})</strong><br/>
+                            {booking.flight_data.departure.airport.city} ({booking.flight_data.departure.airport.code}) &rarr; {booking.flight_data.arrival.airport.city} ({booking.flight_data.arrival.airport.code})<br/>
+                            <span className="opacity-60 italic">{booking.flight_data.departure.date} | {booking.flight_data.departure.time}</span>
+                          </div>
+                          
+                          {booking.flight_data.isRoundTrip && booking.flight_data.returnFlight && (
+                            <div className="pt-2 border-t border-slate-100">
+                              <span className="text-[8px] font-black uppercase px-1 bg-slate-200 mr-1">Pulang</span>
+                              <strong>{booking.flight_data.returnFlight.airline} ({booking.flight_data.returnFlight.flightNumber})</strong><br/>
+                              {booking.flight_data.returnFlight.departure.airport.city} ({booking.flight_data.returnFlight.departure.airport.code}) &rarr; {booking.flight_data.returnFlight.arrival.airport.city} ({booking.flight_data.returnFlight.arrival.airport.code})<br/>
+                              <span className="opacity-60 italic">{booking.flight_data.returnFlight.departure.date} | {booking.flight_data.returnFlight.departure.time}</span>
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="p-2 border border-slate-300 text-center">{booking.passengers_count}</td>
                       <td className="p-2 border border-slate-300 text-right">{booking.flight_data.currency} {(booking.total_price / (booking.passengers_count || 1)).toLocaleString()}</td>

@@ -24,6 +24,7 @@ interface Airline {
   id: string;
   code: string;
   name: string;
+  baggage_info: string;
   is_active: boolean;
   created_at: string;
 }
@@ -32,7 +33,7 @@ export default function ManageAirlines() {
   const { role, isLoading: authLoading } = useAuth();
   const [airlines, setAirlines] = useState<Airline[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newAirline, setNewAirline] = useState({ code: '', name: '' });
+  const [newAirline, setNewAirline] = useState({ code: '', name: '', baggage_info: '' });
   const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
@@ -68,7 +69,8 @@ export default function ManageAirlines() {
         .from('managed_airlines')
         .insert([{ 
           code: newAirline.code.toUpperCase(), 
-          name: newAirline.name || newAirline.code.toUpperCase() 
+          name: newAirline.name || newAirline.code.toUpperCase(),
+          baggage_info: newAirline.baggage_info || '20kg included'
         }])
         .select()
         .single();
@@ -79,7 +81,7 @@ export default function ManageAirlines() {
       }
 
       setAirlines(prev => [...prev, data].sort((a, b) => a.code.localeCompare(b.code)));
-      setNewAirline({ code: '', name: '' });
+      setNewAirline({ code: '', name: '', baggage_info: '' });
       toast.success(`Airline ${data.code} added successfully`);
     } catch (error: any) {
       toast.error(error.message);
@@ -180,6 +182,18 @@ export default function ManageAirlines() {
                       />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label className="font-black uppercase text-[10px]">Default Baggage (e.g. 20kg, 30kg)</Label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground flex items-center justify-center font-bold text-[10px]">KG</div>
+                      <Input 
+                        placeholder="20kg included" 
+                        value={newAirline.baggage_info} 
+                        onChange={(e) => setNewAirline({...newAirline, baggage_info: e.target.value})}
+                        className="border-2 border-foreground pl-10 font-bold"
+                      />
+                    </div>
+                  </div>
                   <Button 
                     type="submit" 
                     disabled={isAdding}
@@ -210,6 +224,7 @@ export default function ManageAirlines() {
                     <tr>
                       <th className="p-4 font-black uppercase tracking-widest text-xs">Code</th>
                       <th className="p-4 font-black uppercase tracking-widest text-xs">Airline Name</th>
+                      <th className="p-4 font-black uppercase tracking-widest text-xs">Baggage Info</th>
                       <th className="p-4 font-black uppercase tracking-widest text-xs">Status</th>
                       <th className="p-4 font-black uppercase tracking-widest text-xs text-right">Actions</th>
                     </tr>
@@ -217,11 +232,11 @@ export default function ManageAirlines() {
                   <tbody className="divide-y-2 divide-foreground">
                     {loading ? (
                       <tr>
-                        <td colSpan={4} className="p-20 text-center font-black animate-pulse uppercase tracking-[0.2em] italic">Accessing Airline Registry...</td>
+                        <td colSpan={5} className="p-20 text-center font-black animate-pulse uppercase tracking-[0.2em] italic">Accessing Airline Registry...</td>
                       </tr>
                     ) : airlines.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="p-20 text-center font-black uppercase opacity-30">No airlines configured. All airlines will be shown.</td>
+                        <td colSpan={5} className="p-20 text-center font-black uppercase opacity-30">No airlines configured. All airlines will be shown.</td>
                       </tr>
                     ) : (
                       airlines.map((airline) => (
@@ -232,7 +247,29 @@ export default function ManageAirlines() {
                             </span>
                           </td>
                           <td className="p-4 font-bold uppercase text-sm">
-                            {airline.name}
+                            <Input 
+                              value={airline.baggage_info || ''}
+                              onChange={async (e) => {
+                                const newVal = e.target.value;
+                                setAirlines(prev => prev.map(a => a.id === airline.id ? { ...a, baggage_info: newVal } : a));
+                                // Debounce or just update on blur? Let's do a simple update for now, maybe on blur is better but I'll stick to a button or just leave it for now.
+                                // Actually, I'll add an update button if I want to be safe, but let's try to update on blur.
+                              }}
+                              onBlur={async (e) => {
+                                try {
+                                  const { error } = await supabase
+                                    .from('managed_airlines')
+                                    .update({ baggage_info: e.target.value })
+                                    .eq('id', airline.id);
+                                  if (error) throw error;
+                                  toast.success(`Baggage for ${airline.code} updated`);
+                                } catch (err: any) {
+                                  toast.error(err.message);
+                                }
+                              }}
+                              className="border-2 border-foreground h-8 font-bold text-xs bg-transparent"
+                              placeholder="20kg included"
+                            />
                           </td>
                           <td className="p-4">
                             <div className="flex items-center gap-3">

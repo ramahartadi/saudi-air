@@ -60,38 +60,83 @@ export default function ConfirmationPage() {
                   <Plane className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-black uppercase text-sm leading-none">{booking.flight.airline}</p>
+                  <p className="font-black uppercase text-sm leading-none">
+                    {booking.flight.airline} {booking.flight.isRoundTrip && "(Round Trip)"}
+                  </p>
                   <p className="font-bold text-xs text-muted-foreground uppercase tracking-wider mt-1">{booking.flight.flightNumber}</p>
                 </div>
               </div>
 
-              <div className="flex justify-between items-center bg-white p-6 border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div>
-                  <p className="text-3xl font-black italic">{booking.flight.departure.airport.code}</p>
-                  <p className="text-xs font-bold uppercase text-muted-foreground">{booking.flight.departure.time}</p>
-                </div>
-                <div className="flex-1 px-4 flex flex-col items-center">
-                  <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">{booking.flight.duration}</p>
-                  <div className="w-full h-1 bg-foreground relative">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-foreground px-1 py-0.5 text-[8px] font-black uppercase">
-                      DIRECT
+              {/* Outbound Leg */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center bg-white p-6 border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <div>
+                    <p className="text-3xl font-black italic">{booking.flight.departure.airport.code}</p>
+                    <p className="text-xs font-bold uppercase text-muted-foreground">{booking.flight.departure.time}</p>
+                  </div>
+                  <div className="flex-1 px-4 flex flex-col items-center">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">{booking.flight.duration}</p>
+                    <div className="w-full h-1 bg-foreground relative">
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-foreground px-1 py-0.5 text-[8px] font-black uppercase">
+                        {booking.flight.stops === 0 ? 'DIRECT' : `${booking.flight.stops} STOP`}
+                      </div>
                     </div>
                   </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-black italic">{booking.flight.arrival.airport.code}</p>
+                    <p className="text-xs font-bold uppercase text-muted-foreground">{booking.flight.arrival.time}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-3xl font-black italic">{booking.flight.arrival.airport.code}</p>
-                  <p className="text-xs font-bold uppercase text-muted-foreground">{booking.flight.arrival.time}</p>
-                </div>
-              </div>
 
-              <div className="mt-6 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-black uppercase">
+                <div className="flex items-center gap-2 text-sm font-black uppercase mb-4">
                   <Calendar className="h-4 w-4 text-primary" />
                   {booking.flight.departure.date}
                 </div>
-                <div className="text-right">
+              </div>
+
+              {/* Return Leg */}
+              {booking.flight.isRoundTrip && booking.flight.returnFlight && (
+                <div className="mt-8 pt-8 border-t-4 border-dashed border-foreground/10">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="bg-primary text-white p-2">
+                      <Plane className="h-5 w-5 rotate-180" />
+                    </div>
+                    <div>
+                      <p className="font-black uppercase text-sm leading-none">Return Flight</p>
+                      <p className="font-bold text-xs text-muted-foreground uppercase tracking-wider mt-1">{booking.flight.returnFlight.flightNumber}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center bg-white p-6 border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <div>
+                      <p className="text-3xl font-black italic">{booking.flight.returnFlight.departure.airport.code}</p>
+                      <p className="text-xs font-bold uppercase text-muted-foreground">{booking.flight.returnFlight.departure.time}</p>
+                    </div>
+                    <div className="flex-1 px-4 flex flex-col items-center">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">{booking.flight.returnFlight.duration || booking.flight.duration}</p>
+                      <div className="w-full h-1 bg-primary relative">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-primary px-1 py-0.5 text-[8px] font-black uppercase">
+                          {booking.flight.returnFlight.stops === 0 ? 'DIRECT' : `${booking.flight.returnFlight.stops} STOP`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-3xl font-black italic">{booking.flight.returnFlight.arrival.airport.code}</p>
+                      <p className="text-xs font-bold uppercase text-muted-foreground">{booking.flight.returnFlight.arrival.time}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-2 text-sm font-black uppercase">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    {booking.flight.returnFlight.departure.date}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-10 pt-6 border-t-4 border-foreground flex items-center justify-between">
+                <div className="text-right flex-1">
                   <p className="text-[10px] font-black text-muted-foreground uppercase">Total Paid</p>
-                  <p className="text-xl font-black text-primary">{booking.flight.currency} {booking.totalPrice?.toLocaleString() || '0'}</p>
+                  <p className="text-3xl font-black text-primary italic leading-none">{booking.flight.currency} {booking.totalPrice?.toLocaleString() || '0'}</p>
                 </div>
               </div>
             </div>

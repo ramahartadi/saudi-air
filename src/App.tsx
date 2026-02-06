@@ -22,6 +22,7 @@ import ManageUsers from "./pages/admin/ManageUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
 import ManageAirports from "./pages/admin/ManageAirports";
 import ManageAirlines from "./pages/admin/ManageAirlines";
+import ManageFlights from "./pages/admin/ManageFlights";
 import MyBookings from "./pages/MyBookings";
 import NotFound from "./pages/NotFound";
 
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/admin/airports" element={<ManageAirports />} />
             <Route path="/admin/airlines" element={<ManageAirlines />} />
+            <Route path="/admin/flights" element={<ManageFlights />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

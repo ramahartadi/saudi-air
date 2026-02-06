@@ -137,43 +137,79 @@ export default function MyBookings() {
                   <div className="p-6 md:p-8 grid md:grid-cols-[1fr,250px] gap-8">
                     {/* Flight Info */}
                     <div className="space-y-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-black uppercase text-sm bg-foreground text-white px-2 py-0.5">{booking.flight_data.airline}</span>
-                        <span className="font-bold text-xs text-muted-foreground">• {booking.flight_data.flightNumber}</span>
-                      </div>
-
-                      <div className="flex justify-between items-center bg-white p-6 border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <div className="flex-1">
-                          <p className="text-xs font-black text-muted-foreground uppercase">{booking.flight_data.departure.airport.city}</p>
-                          <p className="text-4xl font-black italic tracking-tighter">{booking.flight_data.departure.airport.code}</p>
-                          <p className="text-xs font-bold uppercase">{booking.flight_data.departure.time}</p>
-                        </div>
-                        
-                        <div className="px-8 flex flex-col items-center">
-                          <ArrowRight className="h-6 w-6 text-foreground/30" />
+                      {/* Outbound Leg */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-black uppercase text-[10px] bg-foreground text-white px-2 py-0.5">Outbound</span>
+                          <span className="font-black uppercase text-sm">{booking.flight_data.airline}</span>
+                          <span className="font-bold text-xs text-muted-foreground">• {booking.flight_data.flightNumber}</span>
                         </div>
 
-                        <div className="flex-1 text-right">
-                          <p className="text-xs font-black text-muted-foreground uppercase">{booking.flight_data.arrival.airport.city}</p>
-                          <p className="text-4xl font-black italic tracking-tighter">{booking.flight_data.arrival.airport.code}</p>
-                          <p className="text-xs font-bold uppercase">{booking.flight_data.arrival.time}</p>
+                        <div className="flex justify-between items-center bg-white p-6 border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                          <div className="flex-1">
+                            <p className="text-xs font-black text-muted-foreground uppercase">{booking.flight_data.departure.airport.city}</p>
+                            <p className="text-3xl font-black italic tracking-tighter">{booking.flight_data.departure.airport.code}</p>
+                            <p className="text-xs font-bold uppercase">{booking.flight_data.departure.time}</p>
+                          </div>
+                          
+                          <div className="px-6 flex flex-col items-center">
+                            <ArrowRight className="h-5 w-5 text-foreground/30" />
+                          </div>
+
+                          <div className="flex-1 text-right">
+                            <p className="text-xs font-black text-muted-foreground uppercase">{booking.flight_data.arrival.airport.city}</p>
+                            <p className="text-3xl font-black italic tracking-tighter">{booking.flight_data.arrival.airport.code}</p>
+                            <p className="text-xs font-bold uppercase">{booking.flight_data.arrival.time}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-4">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase bg-secondary px-3 py-1 border-2 border-foreground">
+                            <Calendar className="h-3.5 w-3.5 text-primary" />
+                            {booking.flight_data.departure.date}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase bg-secondary px-3 py-1 border-2 border-foreground">
+                            <Clock className="h-3.5 w-3.5 text-primary" />
+                            {booking.flight_data.duration}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-4">
-                        <div className="flex items-center gap-2 text-xs font-black uppercase bg-secondary px-3 py-1 border-2 border-foreground">
-                          <Calendar className="h-4 w-4 text-primary" />
-                          {booking.flight_data.departure.date}
+                      {/* Return Leg */}
+                      {booking.flight_data.isRoundTrip && booking.flight_data.returnFlight && (
+                        <div className="space-y-4 pt-4 border-t-2 border-dashed border-foreground/10">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-black uppercase text-[10px] bg-primary text-white px-2 py-0.5">Return</span>
+                            <span className="font-black uppercase text-sm">{booking.flight_data.returnFlight.airline}</span>
+                            <span className="font-bold text-xs text-muted-foreground">• {booking.flight_data.returnFlight.flightNumber}</span>
+                          </div>
+
+                          <div className="flex justify-between items-center bg-white p-6 border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            <div className="flex-1">
+                              <p className="text-xs font-black text-muted-foreground uppercase">{booking.flight_data.returnFlight.departure.airport.city}</p>
+                              <p className="text-3xl font-black italic tracking-tighter">{booking.flight_data.returnFlight.departure.airport.code}</p>
+                              <p className="text-xs font-bold uppercase">{booking.flight_data.returnFlight.departure.time}</p>
+                            </div>
+                            
+                            <div className="px-6 flex flex-col items-center">
+                              <ArrowRight className="h-5 w-5 text-foreground/30 rotate-180" />
+                            </div>
+
+                            <div className="flex-1 text-right">
+                              <p className="text-xs font-black text-muted-foreground uppercase">{booking.flight_data.returnFlight.arrival.airport.city}</p>
+                              <p className="text-3xl font-black italic tracking-tighter">{booking.flight_data.returnFlight.arrival.airport.code}</p>
+                              <p className="text-xs font-bold uppercase">{booking.flight_data.returnFlight.arrival.time}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-4">
+                            <div className="flex items-center gap-2 text-[10px] font-black uppercase bg-secondary px-3 py-1 border-2 border-foreground">
+                              <Calendar className="h-3.5 w-3.5 text-primary" />
+                              {booking.flight_data.returnFlight.departure.date}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-xs font-black uppercase bg-secondary px-3 py-1 border-2 border-foreground">
-                          <Clock className="h-4 w-4 text-primary" />
-                          {booking.flight_data.duration}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs font-black uppercase bg-secondary px-3 py-1 border-2 border-foreground">
-                          <MapPin className="h-4 w-4 text-primary" />
-                          Direct Flight
-                        </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Summary Side */}

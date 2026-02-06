@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS public.managed_airlines (
     code TEXT UNIQUE NOT NULL,
     name TEXT,
     is_active BOOLEAN DEFAULT true,
+    baggage_info TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
