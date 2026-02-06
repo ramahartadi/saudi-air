@@ -111,17 +111,50 @@ serve(async (req) => {
     if (action === 'create-transaction') {
       const { bookingId, amount, customerDetails, itemDetails } = params
 
-      // Midtrans Limits: 
-      // order_id max 50 chars
-      // name in item_details max 50 chars
-      
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      )
+
+      // 1. Check if we already have a valid token that hasn't expired
+      // Note: Assumes columns midtrans_token and payment_expiry exist in bookings table
+      const { data: existingBooking } = await supabase
+        .from('bookings')
+        .select('midtrans_token, payment_expiry, status')
+        .eq('id', bookingId)
+        .maybeSingle()
+
+      if (existingBooking?.midtrans_token && existingBooking.payment_expiry) {
+        const expiryDate = new Date(existingBooking.payment_expiry)
+        const now = new Date()
+
+        if (now < expiryDate && existingBooking.status === 'Pending') {
+          console.log('--- REUSING EXISTING SNAP TOKEN ---')
+          return new Response(JSON.stringify({ token: existingBooking.midtrans_token }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          })
+        } else if (now >= expiryDate && existingBooking.status === 'Pending') {
+          console.log('--- PAYMENT EXPIRED, CANCELLING BOOKING ---')
+          await supabase
+            .from('bookings')
+            .update({ status: 'Failed' })
+            .eq('id', bookingId)
+          
+          return new Response(JSON.stringify({ 
+            error: 'Batas waktu pembayaran (30 menit) telah habis. Pesanan ini telah dibatalkan secara otomatis.' 
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          })
+        }
+      }
+
+      // 2. Create New Transaction if no valid token exists
       // UUID is 36 chars. Timestamp (ms) is 13 chars. Total 49 or 50 chars.
-      // We use full bookingId as prefix.
       const orderId = `${bookingId}-${Date.now()}`
-      
       const roundedAmount = Math.round(amount)
       
-      // Clean and truncate item details
       const sanitizedItemDetails = itemDetails.map((item: any) => ({
         ...item,
         id: item.id.substring(0, 50),
@@ -129,19 +162,22 @@ serve(async (req) => {
         price: Math.round(item.price)
       }))
 
-      // Re-calculate sum to be 100% sure it matches gross_amount
       const sumItems = sanitizedItemDetails.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0)
 
       const payload = {
         transaction_details: {
           order_id: orderId,
-          gross_amount: sumItems, // Use sum to avoid rounding mismatch
+          gross_amount: sumItems,
         },
         customer_details: {
           ...customerDetails,
           email: customerDetails.email || 'customer@example.com'
         },
         item_details: sanitizedItemDetails,
+        expiry: {
+          unit: 'minutes',
+          duration: 30
+        }
       }
 
       const response = await fetch(SNAP_URL, {
@@ -165,6 +201,16 @@ serve(async (req) => {
           status: 400,
         })
       }
+
+      // 3. Save the new token and expiry time to DB
+      const expiryTime = new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      await supabase
+        .from('bookings')
+        .update({
+          midtrans_token: data.token,
+          payment_expiry: expiryTime
+        })
+        .eq('id', bookingId)
 
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

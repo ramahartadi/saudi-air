@@ -7,6 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { baggageOptions } from '@/data/mockData';
 import { Flight } from '@/types/booking';
 import { ArrowLeft, Lock, Check, Plane, Users, ArrowRight, Calendar, Luggage, Wifi, Tv, PlugZap, Leaf, Info } from 'lucide-react';
@@ -51,6 +62,8 @@ export default function PaymentPage() {
   
   const [flight, setFlight] = useState<Flight | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDataConfirmed, setIsDataConfirmed] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [passengerCount, setPassengerCount] = useState(initialPassengerCount);
   const [passengers, setPassengers] = useState<PassengerData[]>(
     Array(initialPassengerCount).fill(null).map(() => ({ ...emptyPassenger }))
@@ -429,6 +442,30 @@ export default function PaymentPage() {
               </CardContent>
             </Card>
 
+            {/* Data Validation Confirmation */}
+            <div className="p-6 border-4 border-foreground bg-amber-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] space-y-4">
+              <div className="flex items-start gap-4">
+                <Checkbox 
+                  id="confirm-data" 
+                  checked={isDataConfirmed}
+                  onCheckedChange={(checked) => setIsDataConfirmed(checked as boolean)}
+                  className="mt-1 border-2 border-foreground data-[state=checked]:bg-primary rounded-none h-6 w-6"
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="confirm-data"
+                    className="text-sm font-black uppercase italic tracking-tight cursor-pointer"
+                  >
+                    Saya mengonfirmasi bahwa semua data penumpang sudah benar
+                  </label>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase leading-tight">
+                    Pastikan Nama, Nomor Paspor, dan Tanggal Lahir sudah sesuai dengan dokumen perjalanan. 
+                    Kesalahan data setelah booking dapat dikenakan biaya administrasi atau pembatalan.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Navigation */}
             <div className="flex gap-6 pt-4">
               <Button 
@@ -441,8 +478,8 @@ export default function PaymentPage() {
                 BACK
               </Button>
               <Button 
-                onClick={handlePayment}
-                disabled={isProcessing || !isFormValid}
+                onClick={() => setShowConfirmDialog(true)}
+                disabled={isProcessing || !isFormValid || !isDataConfirmed}
                 className="flex-1 border-4 border-foreground h-16 text-xl font-black uppercase italic tracking-tighter shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:bg-emerald-500 hover:text-white active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all disabled:opacity-50 disabled:grayscale"
               >
                 {isProcessing ? (
@@ -471,6 +508,39 @@ export default function PaymentPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent className="border-4 border-foreground rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-black uppercase italic tracking-tight">Periksa Data Sekali Lagi!</AlertDialogTitle>
+            <AlertDialogDescription className="text-foreground font-bold space-y-4">
+              <p className="uppercase text-xs tracking-widest bg-amber-100 p-3 border-2 border-foreground text-amber-900">
+                PENTING: Mohon pastikan seluruh data penumpang (Nama, Nomor Paspor, Tanggal Lahir) sudah 100% akurat sesuai dokumen resmi.
+              </p>
+              <div className="bg-red-50 p-4 border-2 border-red-600 space-y-2">
+                <p className="text-red-600 font-black uppercase text-xs">Kebijakan Pembatalan:</p>
+                <p className="text-[11px] text-red-600 uppercase leading-tight">
+                  Tiket yang sudah dibayar bersifat <span className="underline underline-offset-2">NON-REFUNDABLE</span> (tidak dapat diuangkan kembali) dan tidak dapat dibatalkan.
+                </p>
+              </div>
+              <p className="text-[10px] uppercase text-muted-foreground italic">
+                Dengan mengklik "Lanjutkan", Anda menyetujui semua data sudah benar dan memahami syarat & ketentuan yang berlaku.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 flex gap-4">
+            <AlertDialogCancel className="border-2 border-foreground font-black uppercase h-12 rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handlePayment}
+              className="bg-emerald-500 text-white hover:bg-emerald-600 border-2 border-foreground font-black uppercase h-12 px-8 rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            >
+              Ya, Lanjutkan & Booking
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }

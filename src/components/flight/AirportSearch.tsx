@@ -98,6 +98,7 @@ export function AirportSearch({ value, onChange, placeholder, id }: AirportSearc
           }}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
+          autoComplete="off"
           className="border-2 border-foreground h-12 pl-10 bg-white font-bold placeholder:text-muted-foreground focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all rounded-none"
         />
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-foreground transition-colors" />

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,8 @@ import { CheckCircle, Plane, Calendar, User, Download, Home, ArrowRight } from '
 export default function ConfirmationPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  const [showPassengers, setShowPassengers] = useState(false);
   
   const bookingRef = searchParams.get('ref') || '';
 
@@ -148,10 +150,33 @@ export default function ConfirmationPage() {
                 <span className="font-black uppercase tracking-tight">Passenger Data</span>
               </div>
               <div className="space-y-3">
-                <div className="flex justify-between items-center p-4 border-2 border-foreground bg-secondary font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <button 
+                  onClick={() => setShowPassengers(!showPassengers)}
+                  className="w-full flex justify-between items-center p-4 border-2 border-foreground bg-secondary font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] active:translate-y-0 transition-all"
+                >
                   <span>Count ({booking.passengersCount})</span>
-                  <span className="flex items-center gap-2">Traveler List <ArrowRight className="h-4 w-4" /></span>
-                </div>
+                  <span className="flex items-center gap-2">
+                    {showPassengers ? 'Hide List' : 'Traveler List'} 
+                    <ArrowRight className={`h-4 w-4 transition-transform ${showPassengers ? 'rotate-90' : ''}`} />
+                  </span>
+                </button>
+
+                {showPassengers && booking.passengers && (
+                  <div className="animate-in slide-in-from-top duration-200 space-y-2 mt-4">
+                    {booking.passengers.map((p: any, i: number) => (
+                      <div key={i} className="p-4 border-2 border-foreground bg-white flex justify-between items-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <div>
+                          <p className="text-[10px] font-black text-muted-foreground uppercase leading-none">Traveler {i + 1}</p>
+                          <p className="font-bold text-sm mt-1">{p.title} {p.firstName} {p.lastName}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-muted-foreground uppercase leading-none">Passport</p>
+                          <p className="font-mono font-bold text-xs mt-1">{p.passportNumber || '-'}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
