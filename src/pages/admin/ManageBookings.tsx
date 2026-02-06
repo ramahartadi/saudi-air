@@ -167,7 +167,23 @@ export default function ManageBookings() {
 
       if (updateError) throw updateError;
 
-      // 4. Delete old file if it exists
+      // 4. Trigger Email Notification (Non-blocking)
+      const flightData = currentBooking?.flight_data;
+      if (currentBooking?.user_id) {
+        supabase.functions.invoke('send-eticket-notification', {
+          body: {
+            userId: currentBooking.user_id,
+            bookingRef: currentBooking.booking_reference,
+            flightData: flightData,
+            eticketUrl: publicUrl
+          }
+        }).then(({ error: mailError }) => {
+          if (mailError) console.error("Failed to send notification email:", mailError);
+          else console.log("E-ticket notification email sent successfully");
+        });
+      }
+
+      // 5. Delete old file if it exists
       if (oldUrl) {
         try {
           // Extract path from URL: .../public/bookings/etickets/filename
