@@ -1,12 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Users, Plane, ClipboardList, ShieldCheck, ArrowUpRight, TrendingUp } from 'lucide-react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
 
 export default function AdminDashboard() {
   const { role, user, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   // Tampilkan loading screen saat masih fetching
   if (isLoading) {
@@ -68,7 +69,12 @@ export default function AdminDashboard() {
           <Card className="lg:col-span-2 border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <CardHeader className="border-b-2 border-foreground bg-secondary flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-black uppercase">Recent Bookings</CardTitle>
-              <Button variant="outline" size="sm" className="border-2 border-foreground h-8 font-bold text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <Button 
+                onClick={() => navigate('/admin/bookings')}
+                variant="outline" 
+                size="sm" 
+                className="border-2 border-foreground h-8 font-bold text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              >
                 View All <ArrowUpRight className="ml-1 h-3 w-3" />
               </Button>
             </CardHeader>
