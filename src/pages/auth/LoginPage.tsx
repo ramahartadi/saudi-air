@@ -96,7 +96,7 @@ export default function LoginPage() {
                   <Label htmlFor="password" className="font-black uppercase text-[10px] tracking-widest text-muted-foreground">
                     Password
                   </Label>
-                  <Link to="/forgot-password" disabled className="text-[10px] font-black uppercase hover:underline text-primary opacity-50 cursor-not-allowed">
+                  <Link to="/forgot-password" title="Forgot Password" className="text-[10px] font-black uppercase hover:underline text-primary transition-all">
                     Forgot password?
                   </Link>
                 </div>

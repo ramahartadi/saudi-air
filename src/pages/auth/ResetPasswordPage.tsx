@@ -54,9 +54,9 @@ export default function ResetPasswordPage() {
             <div className="h-16 w-16 border-4 border-foreground bg-white flex items-center justify-center mx-auto mb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <Lock className="h-8 w-8 text-foreground" />
             </div>
-            <CardTitle className="text-2xl font-black uppercase italic text-white tracking-tighter">Set Your Password</CardTitle>
+            <CardTitle className="text-2xl font-black uppercase italic text-white tracking-tighter">Reset Your Password</CardTitle>
             <p className="text-primary-foreground/80 font-bold uppercase text-[10px] mt-1">
-              Silakan buat password untuk mengaktifkan akun Anda
+              Please enter your new password below
             </p>
           </CardHeader>
           <CardContent className="p-8">
@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
                 className="w-full h-14 bg-emerald-400 hover:bg-emerald-500 text-foreground border-4 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none translate-y-[-2px] transition-all font-black uppercase text-sm"
                 disabled={isLoading}
               >
-                {isLoading ? 'Saving...' : 'Activate Account & Save'}
+                {isLoading ? 'Updating...' : 'Update Password'}
                 <Save className="ml-2 h-5 w-5" />
               </Button>
             </form>

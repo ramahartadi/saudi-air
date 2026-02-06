@@ -15,7 +15,11 @@ import {
   Clock,
   Filter,
   ArrowRight,
-  User as UserIcon
+  User as UserIcon,
+  Ticket,
+  FileText,
+  Upload,
+  ExternalLink
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -51,6 +55,7 @@ interface BookingRecord {
     last_name: string;
     email?: string;
   };
+  eticket_url?: string;
 }
 
 export default function ManageBookings() {
@@ -126,6 +131,59 @@ export default function ManageBookings() {
 
       toast.success(`Booking status updated`, { id: loadingToast });
       setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: newStatus } : b));
+    } catch (error: any) {
+      toast.error(error.message, { id: loadingToast });
+    }
+  };
+
+  const handleUploadEticket = async (bookingId: string, file: File) => {
+    const loadingToast = toast.loading(`Uploading e-ticket...`);
+    try {
+      // 0. Find current booking to check for old ticket
+      const currentBooking = bookings.find(b => b.id === bookingId);
+      const oldUrl = currentBooking?.eticket_url;
+
+      // 1. Upload new file to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${bookingId}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `etickets/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('bookings')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('bookings')
+        .getPublicUrl(filePath);
+
+      // 3. Update booking record
+      const { error: updateError } = await supabase
+        .from('bookings')
+        .update({ eticket_url: publicUrl })
+        .eq('id', bookingId);
+
+      if (updateError) throw updateError;
+
+      // 4. Delete old file if it exists
+      if (oldUrl) {
+        try {
+          // Extract path from URL: .../public/bookings/etickets/filename
+          const pathParts = oldUrl.split('/bookings/');
+          if (pathParts.length > 1) {
+            const oldFilePath = pathParts[1];
+            await supabase.storage.from('bookings').remove([oldFilePath]);
+          }
+        } catch (deleteError) {
+          console.error("Failed to delete old eticket:", deleteError);
+          // Don't fail the whole operation if delete fails
+        }
+      }
+
+      toast.success(`E-Ticket uploaded successfully`, { id: loadingToast });
+      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, eticket_url: publicUrl } : b));
     } catch (error: any) {
       toast.error(error.message, { id: loadingToast });
     }
@@ -209,6 +267,7 @@ export default function ManageBookings() {
                   <th className="p-4 font-black uppercase tracking-widest text-[10px]">Route</th>
                   <th className="p-4 font-black uppercase tracking-widest text-[10px]">Total Price</th>
                   <th className="p-4 font-black uppercase tracking-widest text-[10px]">Status</th>
+                  <th className="p-4 font-black uppercase tracking-widest text-[10px]">E-Ticket</th>
                   <th className="p-4 font-black uppercase tracking-widest text-[10px]">Date</th>
                   <th className="p-4 font-black uppercase tracking-widest text-[10px] text-right">Actions</th>
                 </tr>
@@ -268,6 +327,49 @@ export default function ManageBookings() {
                           {booking.status}
                         </Badge>
                       </td>
+                      <td className="p-4">
+                        {booking.status === 'Success' ? (
+                          <div className="flex flex-col gap-1.5">
+                            {booking.eticket_url && (
+                              <a 
+                                href={booking.eticket_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-black text-[9px] uppercase hover:bg-emerald-100 transition-colors w-fit"
+                              >
+                                <FileText className="h-3 w-3" /> View Ticket
+                              </a>
+                            )}
+                            
+                            <div className="relative">
+                              <input
+                                type="file"
+                                id={`eticket-${booking.id}`}
+                                className="hidden"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleUploadEticket(booking.id, file);
+                                }}
+                              />
+                              <label
+                                htmlFor={`eticket-${booking.id}`}
+                                className={`flex items-center gap-1.5 px-2 py-1 border font-black text-[9px] uppercase cursor-pointer transition-colors w-fit ${
+                                  booking.eticket_url 
+                                    ? 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200' 
+                                    : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                }`}
+                              >
+                                <Upload className="h-3 w-3" /> {booking.eticket_url ? 'Change File' : 'Upload Ticket'}
+                              </label>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-bold text-muted-foreground/40 uppercase italic flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> Waiting Payment
+                          </span>
+                        )}
+                      </td>
                       <td className="p-4 font-bold text-[10px] text-muted-foreground uppercase">
                         {new Date(booking.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </td>
@@ -300,6 +402,16 @@ export default function ManageBookings() {
                               <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'Cancelled')} className="font-bold uppercase text-xs cursor-pointer flex gap-2 focus:bg-rose-50 focus:text-rose-700">
                                 <XCircle className="h-4 w-4 text-rose-600" /> Mark as Cancelled
                               </DropdownMenuItem>
+                              {booking.status === 'Success' && (
+                                <>
+                                  <DropdownMenuSeparator className="bg-foreground h-0.5" />
+                                  <DropdownMenuItem asChild className="font-bold uppercase text-xs cursor-pointer flex gap-2">
+                                    <label htmlFor={`eticket-${booking.id}`} className="flex items-center gap-2 w-full cursor-pointer">
+                                      <Upload className="h-4 w-4" /> {booking.eticket_url ? 'Re-upload' : 'Upload'} E-Ticket
+                                    </label>
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
