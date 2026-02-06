@@ -80,7 +80,24 @@ serve(async (req) => {
             if (userAuth?.user?.email) email = userAuth.user.email
           }
 
-          console.log('Triggering Success Email to:', email)
+          // Map Midtrans payment_type to readable name
+          let paymentMethod = body.payment_type || 'Midtrans'
+          if (paymentMethod === 'bank_transfer') {
+            const bank = body.va_numbers?.[0]?.bank || body.permata_va_number ? 'Permata' : ''
+            paymentMethod = `Virtual Account ${bank.toUpperCase()}`.trim()
+          } else if (paymentMethod === 'credit_card') {
+            paymentMethod = 'Kartu Kredit'
+          } else if (paymentMethod === 'qris') {
+            paymentMethod = 'QRIS'
+          } else if (paymentMethod === 'cstore') {
+            paymentMethod = body.store?.toUpperCase() || 'Retail Outlet'
+          } else if (paymentMethod === 'echannel') {
+            paymentMethod = 'Mandiri Bill Payment'
+          } else if (paymentMethod === 'gopay') {
+            paymentMethod = 'GoPay'
+          }
+          
+          console.log('Triggering Success Email to:', email, 'Method:', paymentMethod)
           
           await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-invoice`, {
             method: 'POST',
@@ -95,6 +112,7 @@ serve(async (req) => {
               passengers: booking.booking_passengers,
               totalPrice: booking.total_price,
               status: 'Success',
+              paymentMethod: paymentMethod, // LULUSKAN METODE PEMBAYARAN DISINI
               baseUrl: Deno.env.get('APP_URL') || 'https://skybook-travel.vercel.app',
               bookingId: booking.id
             })
