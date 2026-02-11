@@ -4,10 +4,46 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Users, Plane, ClipboardList, ShieldCheck, ArrowUpRight, TrendingUp } from 'lucide-react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabase';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 export default function AdminDashboard() {
   const { role, user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [quota, setQuota] = useState<{ used: number, allowance: number, loading: boolean }>({
+    used: 0,
+    allowance: 0,
+    loading: true
+  });
+
+  useEffect(() => {
+    const fetchQuota = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('searchapi-flights', {
+          body: { action: 'get-quota' }
+        });
+
+        if (error) throw error;
+
+        if (data && data.account) {
+          setQuota({
+            used: data.account.current_month_usage,
+            allowance: data.account.monthly_allowance,
+            loading: false
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching API quota:', err);
+        setQuota(prev => ({ ...prev, loading: false }));
+        // Don't toast error here to avoid annoying admin, just keep loading false
+      }
+    };
+
+    if (role === 'admin') {
+      fetchQuota();
+    }
+  }, [role]);
 
   // Tampilkan loading screen saat masih fetching
   if (isLoading) {
@@ -137,7 +173,13 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-black uppercase underline decoration-2 underline-offset-4">API Quota Alert</p>
-                  <p className="text-xs text-muted-foreground mt-1 font-medium">Amadeus API hit 85% of monthly limit.</p>
+                  {quota.loading ? (
+                    <p className="text-xs text-muted-foreground mt-1 font-medium italic">Fetching latest quota...</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-1 font-medium">
+                      SearchApi: <span className="font-black text-foreground">{quota.used?.toLocaleString()}</span> / {quota.allowance?.toLocaleString()} credits used.
+                    </p>
+                  )}
                 </div>
               </div>
 

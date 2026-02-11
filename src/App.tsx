@@ -25,6 +25,7 @@ import ManageAirports from "./pages/admin/ManageAirports";
 import ManageAirlines from "./pages/admin/ManageAirlines";
 import ManageFlights from "./pages/admin/ManageFlights";
 import ManageBookings from "./pages/admin/ManageBookings";
+import SearchApiPage from "./pages/admin/SearchApiPage";
 import MyBookings from "./pages/MyBookings";
 import NotFound from "./pages/NotFound";
 
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/admin/airlines" element={<ManageAirlines />} />
             <Route path="/admin/bookings" element={<ManageBookings />} />
             <Route path="/admin/flights" element={<ManageFlights />} />
+            <Route path="/admin/searchapi" element={<SearchApiPage />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

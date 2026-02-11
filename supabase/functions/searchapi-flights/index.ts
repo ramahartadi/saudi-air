@@ -21,34 +21,44 @@ serve(async (req) => {
     const BASE_URL = 'https://www.searchapi.io/api/v1/search'
 
     if (!SEARCHAPI_API_KEY) {
-      throw new Error('SearchApi API key is not configured.')
+      throw new Error('SearchApi API key is not configured in Supabase Secrets.')
     }
 
-    // Initialize Admin Client to bypass RLS
+    if (action === 'get-quota') {
+      console.log('Action: get-quota initiated')
+      const response = await fetch(`https://www.searchapi.io/api/v1/me?api_key=${SEARCHAPI_API_KEY}`)
+      const quotaData = await response.json()
+      
+      console.log('Quota response:', quotaData)
+
+      return new Response(JSON.stringify(quotaData), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
+    }
+
+    // Initialize Admin Client ONLY for actions that need database access
     const adminClient = createClient(
       SUPABASE_URL ?? '',
       SUPABASE_SERVICE_ROLE_KEY ?? ''
     )
 
-    // Fetch active airlines and flight settings
-    const [airlinesRes, settingsRes] = await Promise.all([
-      adminClient.from('managed_airlines').select('code, baggage_info').eq('is_active', true),
-      adminClient.from('app_settings').select('value').eq('id', 'flight_settings').single()
-    ])
-
-    const managedAirlines = airlinesRes.data
-    const settings = settingsRes.data?.value || {}
-    const maxPriceOneWay = settings.maxPriceOneWay || 999999999
-    const maxPriceRoundTrip = settings.maxPriceRoundTrip || 999999999
-
-    const airlineFilter = managedAirlines?.map(a => a.code).join(',')
-    console.log('Active airline filter:', airlineFilter)
-
     if (action === 'search-flights' || action === 'get-featured') {
+      // Fetch active airlines and flight settings
+      const [airlinesRes, settingsRes] = await Promise.all([
+        adminClient.from('managed_airlines').select('code, baggage_info').eq('is_active', true),
+        adminClient.from('app_settings').select('value').eq('id', 'flight_settings').single()
+      ])
+
+      const managedAirlines = airlinesRes.data
+      const settings = settingsRes.data?.value || {}
+      const maxPriceOneWay = settings.maxPriceOneWay || 999999999
+      const maxPriceRoundTrip = settings.maxPriceRoundTrip || 999999999
+
+      const airlineFilter = managedAirlines?.map(a => a.code).join(',')
+      
       const tripType = params?.tripType || 'one-way'
       const applicableLimit = tripType === 'round-trip' ? maxPriceRoundTrip : maxPriceOneWay
-
-      console.log(`Trip Type: ${tripType}, Applicable limit: ${applicableLimit}`)
 
       let finalParams: any = {
         engine: 'google_flights',
@@ -66,7 +76,7 @@ serve(async (req) => {
           flight_type: 'one_way'
         }
       } else {
-        const { origin, destination, date, returnDate, tripType, adults, departure_token, booking_token } = params
+        const { origin, destination, date, returnDate, tripType, adults } = params
         
         finalParams = {
           ...finalParams,
@@ -84,22 +94,13 @@ serve(async (req) => {
         }
       }
 
-      // Add Airline Filter if available
-      if (airlineFilter) {
-        finalParams.included_airlines = airlineFilter
-      }
-
-      // Add Max Price Filter if available (SearchApi native param)
-      if (applicableLimit && applicableLimit < 999999999) {
-        finalParams.max_price = applicableLimit.toString()
-      }
+      if (airlineFilter) finalParams.included_airlines = airlineFilter
+      if (applicableLimit && applicableLimit < 999999999) finalParams.max_price = applicableLimit.toString()
 
       const searchParams = new URLSearchParams(finalParams)
-
       const response = await fetch(`${BASE_URL}?${searchParams.toString()}`)
       const data = await response.json()
 
-      // Filter by max price and ensure price > 0
       if (data.best_flights) {
         data.best_flights = data.best_flights.filter((f: any) => (f.price || 0) > 0 && (f.price || 0) <= applicableLimit)
       }
@@ -107,7 +108,6 @@ serve(async (req) => {
         data.other_flights = data.other_flights.filter((f: any) => (f.price || 0) > 0 && (f.price || 0) <= applicableLimit)
       }
 
-      // Add managed airlines info to the response for baggage lookup
       data.managed_airlines = managedAirlines || []
 
       return new Response(JSON.stringify(data), {
@@ -130,10 +130,11 @@ serve(async (req) => {
         status: 200,
       })
     } else {
-      throw new Error(`Action ${action} not supported for SearchApi`)
+      throw new Error(`Action ${action} not supported`)
     }
 
   } catch (error) {
+    console.error('Function error:', error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

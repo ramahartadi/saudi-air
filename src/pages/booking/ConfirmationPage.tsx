@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ export default function ConfirmationPage() {
   const navigate = useNavigate();
   
   const [showPassengers, setShowPassengers] = useState(false);
+  const [ticketEta, setTicketEta] = useState<string | null>(null);
   
   const bookingRef = searchParams.get('ref') || '';
 
@@ -20,6 +22,36 @@ export default function ConfirmationPage() {
       return null;
     }
   }, []);
+
+  useEffect(() => {
+    const fetchAirlineEta = async () => {
+      if (!booking?.flight?.flightNumber) return;
+      
+      try {
+        // Extract airline code from flight number (first 2 chars)
+        const airlineCode = booking.flight.flightNumber.substring(0, 2).toUpperCase();
+        
+        const { data, error } = await supabase
+          .from('managed_airlines')
+          .select('ticket_eta')
+          .eq('code', airlineCode)
+          .single();
+        
+        if (error) throw error;
+        if (data?.ticket_eta) {
+          setTicketEta(data.ticket_eta);
+        }
+      } catch (err) {
+        console.error("Error fetching airline ETA:", err);
+        // Default to 1x24 if not found
+        setTicketEta('1x24 jam');
+      }
+    };
+
+    if (booking) {
+      fetchAirlineEta();
+    }
+  }, [booking]);
 
   if (!booking) {
     return (
@@ -50,6 +82,17 @@ export default function ConfirmationPage() {
         <div className="p-8 border-4 border-foreground bg-white text-center mb-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transform hover:rotate-1 transition-transform">
           <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">Booking Reference</p>
           <p className="text-5xl font-black font-mono tracking-tighter text-primary">{booking.reference}</p>
+          
+          {ticketEta && (
+            <div className="mt-6 pt-6 border-t-2 border-dashed border-slate-200">
+              <p className="inline-flex items-center gap-2 text-sm font-black uppercase text-emerald-600 bg-emerald-50 px-4 py-2 border-2 border-emerald-600 shadow-[4px_4px_0px_0px_rgba(5,150,105,1)]">
+                Tiket akan terbit dalam sekitar 1x24 jam kedepan
+              </p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase mt-3 italic">
+                *Estimasi waktu sesuai ketentuan maskapai {booking.flight.airline} ({ticketEta})
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Booking Details Card */}

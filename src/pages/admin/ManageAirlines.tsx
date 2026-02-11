@@ -14,7 +14,8 @@ import {
   CheckCircle2, 
   XCircle,
   Search,
-  Hash
+  Hash,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
@@ -25,6 +26,7 @@ interface Airline {
   code: string;
   name: string;
   baggage_info: string;
+  ticket_eta: string;
   is_active: boolean;
   created_at: string;
 }
@@ -33,7 +35,7 @@ export default function ManageAirlines() {
   const { role, isLoading: authLoading } = useAuth();
   const [airlines, setAirlines] = useState<Airline[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newAirline, setNewAirline] = useState({ code: '', name: '', baggage_info: '' });
+  const [newAirline, setNewAirline] = useState({ code: '', name: '', baggage_info: '', ticket_eta: '' });
   const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
@@ -70,7 +72,8 @@ export default function ManageAirlines() {
         .insert([{ 
           code: newAirline.code.toUpperCase(), 
           name: newAirline.name || newAirline.code.toUpperCase(),
-          baggage_info: newAirline.baggage_info || '20kg included'
+          baggage_info: newAirline.baggage_info || '20kg included',
+          ticket_eta: newAirline.ticket_eta || '1x24 hours'
         }])
         .select()
         .single();
@@ -81,7 +84,7 @@ export default function ManageAirlines() {
       }
 
       setAirlines(prev => [...prev, data].sort((a, b) => a.code.localeCompare(b.code)));
-      setNewAirline({ code: '', name: '', baggage_info: '' });
+      setNewAirline({ code: '', name: '', baggage_info: '', ticket_eta: '' });
       toast.success(`Airline ${data.code} added successfully`);
     } catch (error: any) {
       toast.error(error.message);
@@ -194,6 +197,18 @@ export default function ManageAirlines() {
                       />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label className="font-black uppercase text-[10px]">Ticket ETA (e.g. 1x24h, 2x24h)</Label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="1x24 jam" 
+                        value={newAirline.ticket_eta} 
+                        onChange={(e) => setNewAirline({...newAirline, ticket_eta: e.target.value})}
+                        className="border-2 border-foreground pl-10 font-bold"
+                      />
+                    </div>
+                  </div>
                   <Button 
                     type="submit" 
                     disabled={isAdding}
@@ -224,7 +239,8 @@ export default function ManageAirlines() {
                     <tr>
                       <th className="p-4 font-black uppercase tracking-widest text-xs">Code</th>
                       <th className="p-4 font-black uppercase tracking-widest text-xs">Airline Name</th>
-                      <th className="p-4 font-black uppercase tracking-widest text-xs">Baggage Info</th>
+                      <th className="p-4 font-black uppercase tracking-widest text-xs">Baggage</th>
+                      <th className="p-4 font-black uppercase tracking-widest text-xs">Ticket ETA</th>
                       <th className="p-4 font-black uppercase tracking-widest text-xs">Status</th>
                       <th className="p-4 font-black uppercase tracking-widest text-xs text-right">Actions</th>
                     </tr>
@@ -248,12 +264,31 @@ export default function ManageAirlines() {
                           </td>
                           <td className="p-4 font-bold uppercase text-sm">
                             <Input 
+                              value={airline.name || ''}
+                              onChange={(e) => {
+                                setAirlines(prev => prev.map(a => a.id === airline.id ? { ...a, name: e.target.value } : a));
+                              }}
+                              onBlur={async (e) => {
+                                try {
+                                  const { error } = await supabase
+                                    .from('managed_airlines')
+                                    .update({ name: e.target.value })
+                                    .eq('id', airline.id);
+                                  if (error) throw error;
+                                  toast.success(`Airline name for ${airline.code} updated`);
+                                } catch (err: any) {
+                                  toast.error(err.message);
+                                }
+                              }}
+                              className="border-2 border-foreground h-8 font-bold text-xs bg-transparent"
+                              placeholder="Airline Name"
+                            />
+                          </td>
+                          <td className="p-4 font-bold uppercase text-sm">
+                            <Input 
                               value={airline.baggage_info || ''}
-                              onChange={async (e) => {
-                                const newVal = e.target.value;
-                                setAirlines(prev => prev.map(a => a.id === airline.id ? { ...a, baggage_info: newVal } : a));
-                                // Debounce or just update on blur? Let's do a simple update for now, maybe on blur is better but I'll stick to a button or just leave it for now.
-                                // Actually, I'll add an update button if I want to be safe, but let's try to update on blur.
+                              onChange={(e) => {
+                                setAirlines(prev => prev.map(a => a.id === airline.id ? { ...a, baggage_info: e.target.value } : a));
                               }}
                               onBlur={async (e) => {
                                 try {
@@ -269,6 +304,28 @@ export default function ManageAirlines() {
                               }}
                               className="border-2 border-foreground h-8 font-bold text-xs bg-transparent"
                               placeholder="20kg included"
+                            />
+                          </td>
+                          <td className="p-4 font-bold uppercase text-sm">
+                            <Input 
+                              value={airline.ticket_eta || ''}
+                              onChange={(e) => {
+                                setAirlines(prev => prev.map(a => a.id === airline.id ? { ...a, ticket_eta: e.target.value } : a));
+                              }}
+                              onBlur={async (e) => {
+                                try {
+                                  const { error } = await supabase
+                                    .from('managed_airlines')
+                                    .update({ ticket_eta: e.target.value })
+                                    .eq('id', airline.id);
+                                  if (error) throw error;
+                                  toast.success(`ETA for ${airline.code} updated`);
+                                } catch (err: any) {
+                                  toast.error(err.message);
+                                }
+                              }}
+                              className="border-2 border-foreground h-8 font-bold text-xs bg-transparent"
+                              placeholder="1x24 jam"
                             />
                           </td>
                           <td className="p-4">
