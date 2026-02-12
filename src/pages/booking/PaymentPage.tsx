@@ -109,79 +109,33 @@ export default function PaymentPage() {
     setIsProcessing(true);
     
     try {
-      // Generate booking reference
-      const bookingRef = 'SB' + Math.random().toString(36).substr(2, 8).toUpperCase();
-      
-      const { data: bookingData, error: bookingError } = await supabase.from('bookings').insert({
-        user_id: user?.id || null,
-        flight_data: flight,
-        passengers_count: passengerCount,
-        total_price: totalPrice,
-        status: 'Pending',
-        booking_reference: bookingRef
-      }).select().single();
-
-      if (bookingError) {
-        if (bookingError.code === '42P01') {
-          toast.warning("Table 'bookings' not found. Simulating success...");
-        } else {
-          throw bookingError;
+      // 1. Call Secure Edge Function to Create Booking
+      // This recalculates price on server side to prevent manipulation
+      const { data: bookingResult, error: bookingError } = await supabase.functions.invoke('process-booking', {
+        body: {
+          flightData: flight,
+          passengersCount: passengerCount,
+          passengersDetails: passengers
         }
-      }
+      });
 
-      // Insert into booking_passengers if booking record exists
-      if (bookingData?.id) {
-        const passengerRecords = passengers.map(p => ({
-          booking_id: bookingData.id,
-          title: p.title,
-          first_name: p.firstName,
-          last_name: p.lastName,
-          date_of_birth: p.dateOfBirth,
-          nationality: p.nationality,
-          passport_number: p.passportNumber,
-          passport_expiry: p.passportExpiry
-        }));
+      if (bookingError) throw bookingError;
+      if (!bookingResult?.bookingId) throw new Error("Gagal membuat data pesanan.");
 
-        const { error: pError } = await supabase.from('booking_passengers').insert(passengerRecords);
-        if (pError) {
-          console.error("Passenger insert error:", pError);
-          toast.warning("Booking created, but failed to save passenger details.");
-        }
-
-        // Send Invoice Email via Edge Function
-        if (user?.email) {
-          supabase.functions.invoke('send-invoice', {
-            body: {
-              email: user.email,
-              bookingRef: bookingRef,
-              flight: flight,
-              passengers: passengers,
-              totalPrice: totalPrice,
-              status: 'Pending',
-              baseUrl: window.location.origin,
-              bookingId: bookingData?.id
-            }
-          }).then(({ error }) => {
-            if (error) console.error('E-mail error:', error);
-            else console.log('Invoice email triggered successfully');
-          });
-        }
-      }
-      
       // Store last booking for confirmation page
       sessionStorage.setItem('lastBooking', JSON.stringify({
-        reference: bookingRef,
+        reference: bookingResult.bookingRef,
         flight,
         passengersCount: passengerCount,
         passengers,
-        totalPrice: totalPrice,
+        totalPrice: totalPrice, // Still valid for local UI display
       }));
       
       // Clear session data
       sessionStorage.removeItem('selectedFlight');
       
       toast.success("Booking locked! Proceeding to payment...");
-      navigate(`/booking/checkout/${bookingData?.id}`);
+      navigate(`/booking/checkout/${bookingResult.bookingId}`);
     } catch (err: any) {
       console.error("Booking error:", err);
       toast.error("Failed to process booking: " + err.message);
