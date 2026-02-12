@@ -62,7 +62,7 @@ export function BaggageSelector({
                         {isIncluded ? (
                           <span className="font-bold text-primary">Included</span>
                         ) : (
-                          <span className="font-bold">SAR {option.price}</span>
+                          <span className="font-bold">IDR {option.price}</span>
                         )}
                       </div>
                     </div>
@@ -110,7 +110,7 @@ export function BaggageSelector({
       {/* Total */}
       <div className="p-4 border-2 border-foreground bg-secondary flex justify-between items-center">
         <span className="font-bold uppercase text-sm">Additional Baggage Total</span>
-        <span className="text-xl font-bold font-mono">SAR {totalBaggagePrice.toLocaleString()}</span>
+        <span className="text-xl font-bold font-mono">IDR {totalBaggagePrice.toLocaleString()}</span>
       </div>
     </div>
   );

@@ -48,11 +48,11 @@ export function SeatMap({ seats, selectedSeats, maxSelectable, onSeatSelect }: S
         </div>
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 border-2 border-foreground bg-accent" />
-          <span className="text-sm">Premium (+SAR 150)</span>
+          <span className="text-sm">Premium (+IDR 150)</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 border-2 border-foreground bg-secondary" />
-          <span className="text-sm">Exit Row (+SAR 80)</span>
+          <span className="text-sm">Exit Row (+IDR 80)</span>
         </div>
       </div>
 
@@ -100,7 +100,7 @@ export function SeatMap({ seats, selectedSeats, maxSelectable, onSeatSelect }: S
                         idx === 2 && "mr-6",
                         !canSelect(seat) && "cursor-not-allowed"
                       )}
-                      title={`${seat.id} - ${seat.type} ${seat.isAvailable ? `(+SAR ${seat.price})` : '(Occupied)'}`}
+                      title={`${seat.id} - ${seat.type} ${seat.isAvailable ? `(+IDR ${seat.price})` : '(Occupied)'}`}
                     >
                       {seat.id}
                     </button>
@@ -127,7 +127,7 @@ export function SeatMap({ seats, selectedSeats, maxSelectable, onSeatSelect }: S
                 key={seat.id} 
                 className="px-3 py-1 border-2 border-foreground bg-primary text-primary-foreground font-mono"
               >
-                {seat.id} (+SAR {seat.price})
+                {seat.id} (+IDR {seat.price})
               </div>
             ))}
           </div>

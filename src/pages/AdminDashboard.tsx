@@ -16,8 +16,95 @@ export default function AdminDashboard() {
     allowance: 0,
     loading: true
   });
+  const [statsData, setStatsData] = useState({
+    totalUsers: 0,
+    activeBookings: 0,
+    flightsToday: 0,
+    salesVolume: 0,
+    loading: true
+  });
+  const [recentBookings, setRecentBookings] = useState<any[]>([]);
 
   useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setStatsData(prev => ({ ...prev, loading: true }));
+
+        // 1. Total Users
+        const { count: usersCount } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+
+        // 2. Active Bookings (Pending & Success)
+        const { count: bookingsCount } = await supabase
+          .from('bookings')
+          .select('*', { count: 'exact', head: true })
+          .in('status', ['Pending', 'Success']);
+
+        // 3. Sales Volume (Success only)
+        const { data: salesData } = await supabase
+          .from('bookings')
+          .select('total_price')
+          .eq('status', 'Success');
+        
+        const totalSales = salesData?.reduce((acc, curr) => acc + (curr.total_price || 0), 0) || 0;
+
+        // 4. Flights Today (Estimated from bookings made today)
+        const today = new Date().toISOString().split('T')[0];
+        const { count: todayCount } = await supabase
+          .from('bookings')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', today);
+
+        // 5. Recent Bookings (Separate fetch to avoid join relationship issues)
+        const { data: bookingData } = await supabase
+          .from('bookings')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (bookingData && bookingData.length > 0) {
+          const userIds = [...new Set(bookingData.map(b => b.user_id).filter(Boolean))];
+          
+          let profileMap: Record<string, any> = {};
+          if (userIds.length > 0) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('id, first_name, last_name')
+              .in('id', userIds);
+            
+            if (profileData) {
+              profileData.forEach(p => {
+                profileMap[p.id] = p;
+              });
+            }
+          }
+
+          const combined = bookingData.map(b => ({
+            ...b,
+            profiles: b.user_id ? profileMap[b.user_id] : null
+          }));
+
+          setRecentBookings(combined);
+        } else {
+          setRecentBookings([]);
+        }
+
+        setStatsData({
+          totalUsers: usersCount || 0,
+          activeBookings: bookingsCount || 0,
+          flightsToday: todayCount || 0,
+          salesVolume: totalSales,
+          loading: false
+        });
+
+      } catch (err: any) {
+        console.error('Error fetching dashboard data:', err);
+        toast.error('Gagal mengambil data dashboard: ' + err.message);
+        setStatsData(prev => ({ ...prev, loading: false }));
+      }
+    };
+
     const fetchQuota = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('searchapi-flights', {
@@ -36,16 +123,16 @@ export default function AdminDashboard() {
       } catch (err) {
         console.error('Error fetching API quota:', err);
         setQuota(prev => ({ ...prev, loading: false }));
-        // Don't toast error here to avoid annoying admin, just keep loading false
       }
     };
 
     if (role === 'admin') {
+      fetchDashboardData();
       fetchQuota();
     }
   }, [role]);
 
-  // Tampilkan loading screen saat masih fetching
+  // Tampilkan loading screen saat masih fetching auth
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
@@ -65,10 +152,10 @@ export default function AdminDashboard() {
   }
 
   const stats = [
-    { label: 'Total Users', value: '1,234', change: '+12%', icon: Users, color: 'bg-indigo-500' },
-    { label: 'Active Bookings', value: '56', change: '+3%', icon: ClipboardList, color: 'bg-emerald-500' },
-    { label: 'Flights Today', value: '12', change: '-5%', icon: Plane, color: 'bg-orange-500' },
-    { label: 'Sales Volume', value: 'SAR 45.2k', change: '+18%', icon: TrendingUp, color: 'bg-pink-500' },
+    { label: 'Total Users', value: statsData.loading ? '...' : statsData.totalUsers.toLocaleString(), change: '+12%', icon: Users, color: 'bg-indigo-500' },
+    { label: 'Active Bookings', value: statsData.loading ? '...' : statsData.activeBookings.toLocaleString(), change: '+3%', icon: ClipboardList, color: 'bg-emerald-500' },
+    { label: 'Flights Today', value: statsData.loading ? '...' : statsData.flightsToday.toLocaleString(), change: '-5%', icon: Plane, color: 'bg-orange-500' },
+    { label: 'Sales Volume', value: statsData.loading ? '...' : `IDR ${(statsData.salesVolume >= 1000000 ? (statsData.salesVolume / 1000000).toFixed(1) + 'Jt' : (statsData.salesVolume / 1000).toFixed(1) + 'k')}`, change: '+18%', icon: TrendingUp, color: 'bg-pink-500' },
   ];
 
   return (
@@ -119,7 +206,7 @@ export default function AdminDashboard() {
                 <table className="w-full text-left">
                   <thead className="bg-muted border-b-2 border-foreground">
                     <tr>
-                      <th className="p-4 text-xs font-black uppercase">ID</th>
+                      <th className="p-4 text-xs font-black uppercase">Ref</th>
                       <th className="p-4 text-xs font-black uppercase">Customer</th>
                       <th className="p-4 text-xs font-black uppercase">Destination</th>
                       <th className="p-4 text-xs font-black uppercase">Status</th>
@@ -127,25 +214,32 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y-2 divide-foreground">
-                    {[
-                      { id: 'BK-1021', name: 'Ahmad Al-Sudais', dest: 'London (LHR)', status: 'Success', amount: 'SAR 3,420' },
-                      { id: 'BK-1022', name: 'Sarah Wilson', dest: 'Dubai (DXB)', status: 'Pending', amount: 'SAR 1,200' },
-                      { id: 'BK-1023', name: 'Khalid Jamil', dest: 'Jeddah (JED)', status: 'Success', amount: 'SAR 850' },
-                      { id: 'BK-1024', name: 'Fatima Noor', dest: 'Istanbul (IST)', status: 'Cancelled', amount: 'SAR 2,100' },
-                    ].map((row, i) => (
-                      <tr key={i} className="hover:bg-muted/50">
-                        <td className="p-4 text-sm font-bold">{row.id}</td>
-                        <td className="p-4 text-sm font-bold">{row.name}</td>
-                        <td className="p-4 text-sm text-muted-foreground">{row.dest}</td>
-                        <td className="p-4">
-                          <span className={`px-2 py-1 text-[10px] font-black uppercase border-2 border-foreground shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] 
-                            ${row.status === 'Success' ? 'bg-emerald-400' : row.status === 'Pending' ? 'bg-amber-400' : 'bg-rose-400'}`}>
-                            {row.status}
-                          </span>
+                    {recentBookings.length > 0 ? (
+                      recentBookings.map((row, i) => (
+                        <tr key={i} className="hover:bg-muted/50">
+                          <td className="p-4 text-sm font-bold">{row.booking_reference}</td>
+                          <td className="p-4 text-sm font-bold">
+                            {row.profiles ? `${row.profiles.first_name || ''} ${row.profiles.last_name || ''}`.trim() : (row.user_id?.substring(0, 8) || 'Guest')}
+                          </td>
+                          <td className="p-4 text-sm text-muted-foreground">
+                            {row.flight_data?.arrival?.airport?.city || 'Unknown'}
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 text-[10px] font-black uppercase border-2 border-foreground shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] 
+                              ${row.status === 'Success' ? 'bg-emerald-400' : row.status === 'Pending' ? 'bg-amber-400' : 'bg-rose-400'}`}>
+                              {row.status}
+                            </span>
+                          </td>
+                          <td className="p-4 text-sm font-black">IDR {row.total_price?.toLocaleString()}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-muted-foreground font-bold uppercase italic">
+                          No bookings found.
                         </td>
-                        <td className="p-4 text-sm font-black">{row.amount}</td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
