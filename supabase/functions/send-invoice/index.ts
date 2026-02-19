@@ -15,13 +15,15 @@ serve(async (req) => {
   try {
     const body = await req.json()
     console.log('Sending invoice request received:', body)
-    const { email, bookingRef, flight, passengers, totalPrice, status, paymentMethod, baseUrl, bookingId } = body
+    const { email, bookingRef, flight, hotel, passengers, totalPrice, status, paymentMethod, baseUrl, bookingId } = body
     
     if (!RESEND_API_KEY) {
       console.error('RESEND_API_KEY is not set')
       throw new Error('Email service key missing')
     }
 
+    const isHotel = !!hotel
+    const currency = hotel?.currency || flight?.currency || 'IDR'
     const isPaid = status === 'Success'
     const checkoutUrl = `${baseUrl}/booking/checkout/${bookingId || bookingRef}`
     const dateNow = new Date().toLocaleDateString('id-ID', { 
@@ -73,14 +75,21 @@ serve(async (req) => {
                 <tbody>
                   <tr>
                     <td style="padding: 8px; border: 1px solid #ddd;">1</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">Akomodasi Penerbangan</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${isHotel ? 'Akomodasi Hotel' : 'Akomodasi Penerbangan'}</td>
                     <td style="padding: 8px; border: 1px solid #ddd;">
-                      ${flight.airline} (${flight.flightNumber})<br/>
-                      ${flight.departure.airport.city} &rarr; ${flight.arrival.airport.city}
+                      ${isHotel ? `
+                        <strong>${hotel.name}</strong><br/>
+                        ${hotel.address || ''}<br/>
+                        Check-in: ${new Date(hotel.checkIn).toLocaleDateString('id-ID')}<br/>
+                        Check-out: ${new Date(hotel.checkOut).toLocaleDateString('id-ID')} (${hotel.nights} Malam)
+                      ` : `
+                        ${flight.airline} (${flight.flightNumber})<br/>
+                        ${flight.departure.airport.city} &rarr; ${flight.arrival.airport.city}
+                      `}
                     </td>
-                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${passengers.length}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${flight.currency} ${(totalPrice / (passengers.length || 1)).toLocaleString()}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${flight.currency} ${totalPrice.toLocaleString()}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${isHotel ? hotel.rooms : passengers.length}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${currency} ${(totalPrice / (isHotel ? hotel.rooms : (passengers.length || 1))).toLocaleString()}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${currency} ${totalPrice.toLocaleString()}</td>
                   </tr>
                   ${!isPaid && paymentMethod ? `
                   <tr>
@@ -129,10 +138,10 @@ serve(async (req) => {
 
             <div style="text-align: right; margin-top: 30px;">
               <table style="width: 100%; font-size: 12px; font-weight: bold;">
-                <tr><td style="padding: 5px; text-align: right;">TOTAL :</td><td style="padding: 5px; width: 150px; text-align: right;">${flight.currency} ${totalPrice.toLocaleString()}</td></tr>
+                <tr><td style="padding: 5px; text-align: right;">TOTAL :</td><td style="padding: 5px; width: 150px; text-align: right;">${currency} ${totalPrice.toLocaleString()}</td></tr>
                 <tr style="font-size: 16px; color: #0081C9;">
                   <td style="padding: 5px; text-align: right;">JUMLAH PEMBAYARAN :</td>
-                  <td style="padding: 5px; text-align: right;">${flight.currency} ${totalPrice.toLocaleString()}</td>
+                  <td style="padding: 5px; text-align: right;">${currency} ${totalPrice.toLocaleString()}</td>
                 </tr>
               </table>
             </div>

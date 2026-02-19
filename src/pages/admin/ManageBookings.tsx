@@ -50,6 +50,8 @@ interface BookingRecord {
   created_at: string;
   passengers_count: number;
   flight_data: any;
+  booking_type?: 'flight' | 'hotel';
+  hotel_data?: any;
   profiles?: {
     first_name: string;
     last_name: string;
@@ -321,18 +323,33 @@ export default function ManageBookings() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-black italic text-xs uppercase">{booking.flight_data?.departure?.airport?.code}</span>
-                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                          <span className="font-black italic text-xs uppercase">{booking.flight_data?.arrival?.airport?.code}</span>
-                        </div>
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">
-                          {booking.flight_data?.airline} • {booking.passengers_count} Pax
-                        </p>
+                        {booking.booking_type === 'hotel' ? (
+                          <div className="flex flex-col">
+                            <span className="font-black italic text-xs uppercase truncate max-w-[150px]">
+                              {booking.hotel_data?.name}
+                            </span>
+                            <p className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">
+                              {booking.hotel_data?.rooms} Room(s) • {booking.hotel_data?.nights} Night(s)
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black italic text-xs uppercase">{booking.flight_data?.departure?.airport?.code}</span>
+                              <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                              <span className="font-black italic text-xs uppercase">{booking.flight_data?.arrival?.airport?.code}</span>
+                            </div>
+                            <p className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">
+                              {booking.flight_data?.airline} • {booking.passengers_count} Pax
+                            </p>
+                          </>
+                        )}
                       </td>
                       <td className="p-4">
                         <span className="font-black text-xs">
-                          {booking.flight_data?.currency || 'IDR'} {booking.total_price?.toLocaleString()}
+                          {booking.booking_type === 'hotel' 
+                            ? (booking.hotel_data?.currency || 'IDR') 
+                            : (booking.flight_data?.currency || 'IDR')} {booking.total_price?.toLocaleString()}
                         </span>
                       </td>
                       <td className="p-4">

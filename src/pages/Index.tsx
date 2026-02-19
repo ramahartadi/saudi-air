@@ -1,15 +1,18 @@
 import { Layout } from '@/components/layout/Layout';
 import { FlightSearchForm } from '@/components/flight/FlightSearchForm';
-import { Plane, Shield, Clock, CreditCard, Compass, ArrowRight, Loader2 } from 'lucide-react';
+import { HotelSearchForm } from '@/components/hotel/HotelSearchForm';
+import { Plane, Shield, Clock, CreditCard, Compass, ArrowRight, Loader2, Building, BedDouble } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   const { role, user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('flights');
 
   useEffect(() => {
     if (!isLoading && user && role === 'admin') {
@@ -25,21 +28,46 @@ const Index = () => {
         <div className="container py-16 md:py-24 relative z-10">
           <div className="max-w-3xl mx-auto text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-foreground bg-white mb-6 font-black text-xs uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <Plane className="h-4 w-4 text-primary" />
-              SKY-HIGH LUXURY, GROUND-LEVEL PRICING
+              <Compass className="h-4 w-4 text-primary" />
+              ULTIMATE TRAVEL COMMAND CENTER
             </div>
             <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6 uppercase italic leading-[0.9]">
-              Find Your Next<br />
-              <span className="text-primary stroke-foreground">Great Escape</span>
+              Your Journey<br />
+              <span className="text-primary stroke-foreground">Defined By You</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto font-bold uppercase tracking-tight">
-              Connect to over 100+ destinations with Saudi Airlines. Fast, secure, and brutally transparent.
+              Flights, Hotels, and Logistics. Fast, secure, and brutally transparent.
             </p>
           </div>
 
           <div className="max-w-5xl mx-auto">
-            <div className="border-4 border-foreground bg-white p-6 md:p-10 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
-              <FlightSearchForm />
+            <div className="border-4 border-foreground bg-white shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+              <Tabs defaultValue="flights" className="w-full" onValueChange={setActiveTab}>
+                <TabsList className="w-full h-auto p-0 bg-foreground rounded-none grid grid-cols-2">
+                  <TabsTrigger 
+                    value="flights" 
+                    className="h-16 rounded-none font-black uppercase text-sm tracking-widest data-[state=active]:bg-white data-[state=active]:text-foreground text-white border-r-2 border-foreground transition-all"
+                  >
+                    <Plane className={`mr-2 h-5 w-5 ${activeTab === 'flights' ? 'text-primary' : ''}`} />
+                    Flights
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="hotels" 
+                    className="h-16 rounded-none font-black uppercase text-sm tracking-widest data-[state=active]:bg-white data-[state=active]:text-foreground text-white transition-all"
+                  >
+                    <BedDouble className={`mr-2 h-5 w-5 ${activeTab === 'hotels' ? 'text-primary' : ''}`} />
+                    Hotels
+                  </TabsTrigger>
+                </TabsList>
+                <div className="p-6 md:p-10">
+                  <TabsContent value="flights" className="mt-0 border-none p-0 focus-visible:ring-0">
+                    <FlightSearchForm />
+                  </TabsContent>
+                  <TabsContent value="hotels" className="mt-0 border-none p-0 focus-visible:ring-0">
+                    <HotelSearchForm />
+                  </TabsContent>
+                </div>
+              </Tabs>
             </div>
           </div>
         </div>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { Flight } from '@/types/booking';
-import { Plane, Loader2, ArrowLeft } from 'lucide-react';
+import { Plane, Loader2, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -184,17 +184,21 @@ export default function UserFlightsPage() {
     
     return baseFlight;
   };
+ 
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const fetchSpecificFlights = async () => {
     setLoading(true);
     setFlights([]);
+    setApiError(null);
     try {
       const { data, error } = await supabase.functions.invoke('searchapi-flights', {
         body: {
           action: 'search-flights',
           params: { 
-            origin, 
-            destination, 
+            origin: origin?.trim().toUpperCase(), 
+            destination: destination?.trim().toUpperCase(), 
             date: departureDate, 
             returnDate: tripType === 'round-trip' ? returnDate : undefined,
             tripType,
@@ -202,8 +206,17 @@ export default function UserFlightsPage() {
           }
         }
       });
-      if (error) throw error;
       
+      if (error) {
+        console.error('Supabase Function Error:', error);
+        throw error;
+      }
+      
+      if (data?.error) {
+        setApiError(data.error);
+        toast.error(data.error);
+      }
+
       const combinedFlights = [
         ...(data?.best_flights || []),
         ...(data?.other_flights || [])
@@ -212,11 +225,12 @@ export default function UserFlightsPage() {
       if (combinedFlights.length > 0) {
         const flightsData = combinedFlights.map((f: any) => mapSearchApiToFlight(f, data.managed_airlines));
         setFlights(flightsData);
-      } else {
-        toast.error("Tidak ada penerbangan ditemukan.");
+      } else if (!data?.error) {
+        toast.info("Penerbangan tidak ditemukan.");
       }
     } catch (err: any) {
       console.error('Crash:', err);
+      setApiError(err.message || 'Gagal terhubung ke provider pencarian.');
       toast.error('Gagal terhubung ke server.');
     } finally {
       setLoading(false);
@@ -245,6 +259,36 @@ export default function UserFlightsPage() {
   return (
     <Layout>
       <div className="container py-8 min-h-screen">
+        {/* Admin Debug Panel */}
+        {role === 'admin' && (
+          <div className="mb-6 border-4 border-dashed border-rose-500 p-4 bg-rose-50 shadow-[4px_4px_0px_0px_rgba(244,63,94,1)]">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-sm font-black uppercase text-rose-600 flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" /> Admin Debug Panel (User Mode View)
+              </h2>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowDebug(!showDebug)}
+                className="h-7 text-[10px] font-black border-2 border-rose-500 hover:bg-rose-100"
+              >
+                {showDebug ? 'HIDE STATUS' : 'SHOW STATUS'}
+              </Button>
+            </div>
+            {showDebug && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px] font-bold uppercase mt-4 border-t-2 border-rose-200 pt-4">
+                <div><span className="text-muted-foreground mr-1">Origin:</span> {origin}</div>
+                <div><span className="text-muted-foreground mr-1">Dest:</span> {destination}</div>
+                <div><span className="text-muted-foreground mr-1">Disc:</span> {discountRate}%</div>
+                <div><span className="text-muted-foreground mr-1">EUR:</span> {eurRate}</div>
+                <div className="col-span-full mt-2">
+                  <span className="text-rose-600">Error State:</span> {apiError || 'NONE'}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <Button variant="ghost" onClick={() => navigate('/')} className="mb-6 border-2 border-foreground font-black">
           <ArrowLeft className="mr-2 h-4 w-4" /> BACK TO SEARCH
         </Button>
@@ -271,16 +315,31 @@ export default function UserFlightsPage() {
             <p className="font-black uppercase tracking-widest italic">Calculating Your Best Price...</p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {flights.map(f => (
-              <FlightCard 
-                key={f.id} 
-                flight={f} 
-                passengers={passengers}
-                onSelect={handleFlightSelect} 
-              />
-            ))}
-          </div>
+          flights.length > 0 ? (
+            <div className="space-y-6">
+              {flights.map(f => (
+                <FlightCard 
+                  key={f.id} 
+                  flight={f} 
+                  passengers={passengers}
+                  onSelect={handleFlightSelect} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="py-20 bg-secondary border-4 border-foreground border-dashed text-center flex flex-col items-center gap-4">
+              <div className="h-16 w-16 bg-white border-2 border-foreground flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <Plane className="h-8 w-8 text-muted-foreground -rotate-45" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black uppercase italic tracking-tighter">No Verified Deals Found</h3>
+                <p className="text-muted-foreground font-bold uppercase text-xs mt-1">Try different dates or search routes nearby.</p>
+              </div>
+              <Button onClick={() => navigate('/')} variant="outline" className="mt-2 border-2 border-foreground font-black uppercase text-xs">
+                Modify Search
+              </Button>
+            </div>
+          )
         )}
       </div>
     </Layout>

@@ -94,21 +94,59 @@ serve(async (req) => {
         }
       }
 
-      if (airlineFilter) finalParams.included_airlines = airlineFilter
-      if (applicableLimit && applicableLimit < 999999999) finalParams.max_price = applicableLimit.toString()
+      if (airlineFilter) {
+        console.log('Applying airline filter:', airlineFilter)
+        finalParams.included_airlines = airlineFilter
+      }
+      
+      if (applicableLimit && applicableLimit < 999999999) {
+        console.log('Applying price limit:', applicableLimit)
+        finalParams.max_price = applicableLimit.toString()
+      }
+
+      console.log('SearchApi Final Params:', JSON.stringify(finalParams))
 
       const searchParams = new URLSearchParams(finalParams)
       const response = await fetch(`${BASE_URL}?${searchParams.toString()}`)
       const data = await response.json()
 
-      if (data.best_flights) {
-        data.best_flights = data.best_flights.filter((f: any) => (f.price || 0) > 0 && (f.price || 0) <= applicableLimit)
+      if (data.error) {
+        console.error('SearchApi Engine Error:', data.error)
+        return new Response(JSON.stringify({ error: data.error, details: data }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        })
       }
+
+      console.log(`SearchApi Raw Result: ${data.best_flights?.length || 0} best, ${data.other_flights?.length || 0} other.`)
+      
+      if (data.best_flights?.length > 0) {
+        console.log('Sample Best Flight (Keys):', Object.keys(data.best_flights[0]))
+      } else if (data.other_flights?.length > 0) {
+        console.log('Sample Other Flight (Keys):', Object.keys(data.other_flights[0]))
+      }
+
+      // Filter by price as requested: only flights with a valid price are kept.
+      const filterFlight = (f: any) => {
+        const price = f.price || 0;
+        return price > 0 && price <= applicableLimit;
+      }
+
+      if (data.best_flights) {
+        const before = data.best_flights.length
+        data.best_flights = data.best_flights.filter(filterFlight)
+        console.log(`Best flights: ${before} -> ${data.best_flights.length} after filter`)
+      }
+      
       if (data.other_flights) {
-        data.other_flights = data.other_flights.filter((f: any) => (f.price || 0) > 0 && (f.price || 0) <= applicableLimit)
+        const before = data.other_flights.length
+        data.other_flights = data.other_flights.filter(filterFlight)
+        console.log(`Other flights: ${before} -> ${data.other_flights.length} after filter`)
       }
 
       data.managed_airlines = managedAirlines || []
+      
+      console.log(`Final Result: Found ${data.best_flights?.length || 0} best, ${data.other_flights?.length || 0} other.`)
 
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -116,6 +154,8 @@ serve(async (req) => {
       })
     } else if (action === 'search-airports') {
       const { keyword } = params
+      console.log('Action: search-airports, keyword:', keyword)
+      
       const searchParams = new URLSearchParams({
         engine: 'google_flights_location',
         q: keyword,

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { Flight } from '@/types/booking';
-import { ArrowLeft, Plane, Loader2, Calendar } from 'lucide-react';
+import { ArrowLeft, Plane, Loader2, Calendar, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -189,16 +189,21 @@ export default function FlightsPage() {
     return baseFlight;
   };
 
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
+
   const fetchSpecificFlights = async () => {
     setLoading(true);
     setFlights([]);
+    setApiError(null);
     try {
+      console.log('Invoking SearchApi with:', { origin, destination, departureDate, tripType });
       const { data, error } = await supabase.functions.invoke('searchapi-flights', {
         body: {
           action: 'search-flights',
           params: { 
-            origin, 
-            destination, 
+            origin: origin?.trim().toUpperCase(), 
+            destination: destination?.trim().toUpperCase(), 
             date: departureDate, 
             returnDate: tripType === 'round-trip' ? returnDate : undefined,
             tripType,
@@ -206,8 +211,17 @@ export default function FlightsPage() {
           }
         }
       });
-      if (error) throw error;
       
+      if (error) {
+        console.error('Supabase Function Error:', error);
+        throw error;
+      }
+      
+      if (data?.error) {
+        setApiError(data.error);
+        toast.error(data.error);
+      }
+
       const combinedFlights = [
         ...(data?.best_flights || []),
         ...(data?.other_flights || [])
@@ -216,11 +230,13 @@ export default function FlightsPage() {
       if (combinedFlights.length > 0) {
         const flightsData = combinedFlights.map((f: any) => mapSearchApiToFlight(f, data.managed_airlines));
         setFlights(flightsData);
-      } else {
-        toast.error("Tidak ada penerbangan ditemukan.");
+      } else if (!data?.error) {
+        // Only show this if it wasn't an explicit API error
+        toast.info("Penerbangan tidak ditemukan untuk rute ini.");
       }
     } catch (err: any) {
-      console.error('Crash:', err);
+      console.error('Search Crash:', err);
+      setApiError(err.message || 'Gagal terhubung ke provider pencarian.');
       toast.error('Gagal terhubung ke server.');
     } finally {
       setLoading(false);
@@ -237,7 +253,9 @@ export default function FlightsPage() {
   };
 
   useEffect(() => {
-    if (!authLoading && !role && origin && destination && eurRate !== null) {
+    // Only fetch for guests (no role) OR admins (since they stay on this page)
+    const isAllowedToSearch = !role || role === 'admin';
+    if (!authLoading && isAllowedToSearch && origin && destination && eurRate !== null) {
       if (departureDate) initialSearch();
       else fetchCheapestDates();
     }
@@ -245,16 +263,17 @@ export default function FlightsPage() {
 
   const fetchCheapestDates = async () => {
     setLoading(false);
-    toast.info("Cheapest dates search is not supported with SearchApi yet.");
+    // Removed toast info to avoid clutter
   };
 
-  // If loading auth or has role (waiting for redirect), show loader
-  if (authLoading || role) {
+  // If loading auth or has a role that should be redirected, show loader
+  const isRedirecting = !authLoading && (role === 'user' || role === 'agent');
+  if (authLoading || isRedirecting) {
     return (
       <Layout>
         <div className="py-20 text-center flex flex-col items-center min-h-screen">
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-          <p className="font-black uppercase tracking-widest italic">Identifying Account Tier...</p>
+          <p className="font-black uppercase tracking-widest italic">Redirecting to Your Portal...</p>
         </div>
       </Layout>
     );
@@ -263,6 +282,39 @@ export default function FlightsPage() {
   return (
     <Layout>
       <div className="container py-8 min-h-screen">
+        {/* Admin Debug Panel */}
+        {role === 'admin' && (
+          <div className="mb-6 border-4 border-dashed border-rose-500 p-4 bg-rose-50 shadow-[4px_4px_0px_0px_rgba(244,63,94,1)]">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-sm font-black uppercase text-rose-600 flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" /> Admin Debug Panel
+              </h2>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowDebug(!showDebug)}
+                className="h-7 text-[10px] font-black border-2 border-rose-500 hover:bg-rose-100"
+              >
+                {showDebug ? 'HIDE STATUS' : 'SHOW STATUS'}
+              </Button>
+            </div>
+            {showDebug && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px] font-bold uppercase mt-4 border-t-2 border-rose-200 pt-4">
+                <div><span className="text-muted-foreground mr-1">Origin:</span> {origin || 'NULL'}</div>
+                <div><span className="text-muted-foreground mr-1">Dest:</span> {destination || 'NULL'}</div>
+                <div><span className="text-muted-foreground mr-1">Date:</span> {departureDate || 'NULL'}</div>
+                <div><span className="text-muted-foreground mr-1">Role:</span> {role || 'GUEST'}</div>
+                <div><span className="text-muted-foreground mr-1">EUR/IDR:</span> {eurRate || 'NULL'}</div>
+                <div><span className="text-muted-foreground mr-1">Flights:</span> {flights.length}</div>
+                <div><span className="text-muted-foreground mr-1">Loading:</span> {loading ? 'YES' : 'NO'}</div>
+                <div className="col-span-full mt-2">
+                  <span className="text-rose-600">Error State:</span> {apiError || 'NONE'}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <Button variant="ghost" onClick={() => navigate('/')} className="mb-6 border-2 border-foreground font-black">
           <ArrowLeft className="mr-2 h-4 w-4" /> BACK TO SEARCH
         </Button>
@@ -270,12 +322,22 @@ export default function FlightsPage() {
         <div className="bg-white border-4 border-foreground p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-10">
           <div className="flex flex-col lg:flex-row justify-between gap-6">
             <div>
-              <h1 className="text-4xl font-black uppercase tracking-tighter">
-                {origin} <Plane className="h-6 w-6 inline text-primary" /> {destination}
+              <h1 className="text-4xl font-black uppercase tracking-tighter flex items-center gap-4">
+                {origin} <Plane className="h-8 w-8 text-primary" /> {destination}
               </h1>
               <p className="font-bold text-muted-foreground uppercase text-xs mt-2 bg-secondary inline-block px-2 py-1 border border-foreground">
-                Public Search Mode • {tripType.toUpperCase()}
+                Public Search Mode • {tripType.toUpperCase()} • {departureDate}
               </p>
+            </div>
+            <div className="flex items-end">
+              <Button 
+                onClick={fetchSpecificFlights} 
+                disabled={loading}
+                className="border-4 border-foreground bg-primary text-primary-foreground font-black uppercase italic shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+              >
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Refresh Results
+              </Button>
             </div>
           </div>
         </div>
@@ -286,16 +348,31 @@ export default function FlightsPage() {
             <p className="font-black uppercase tracking-widest italic">Syncing with Google Network...</p>
           </div>
         ) : departureDate ? (
-          <div className="space-y-6">
-            {flights.map(f => (
-              <FlightCard 
-                key={f.id} 
-                flight={f} 
-                passengers={passengers}
-                onSelect={handleFlightSelect} 
-              />
-            ))}
-          </div>
+          flights.length > 0 ? (
+            <div className="space-y-6">
+              {flights.map(f => (
+                <FlightCard 
+                  key={f.id} 
+                  flight={f} 
+                  passengers={passengers}
+                  onSelect={handleFlightSelect} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="py-20 bg-secondary border-4 border-foreground border-dashed text-center flex flex-col items-center gap-4">
+              <div className="h-16 w-16 bg-white border-2 border-foreground flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <Plane className="h-8 w-8 text-muted-foreground -rotate-45" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black uppercase italic tracking-tighter">No Flights Found</h3>
+                <p className="text-muted-foreground font-bold uppercase text-xs mt-1">Try different dates or search routes nearby.</p>
+              </div>
+              <Button onClick={() => navigate('/')} variant="outline" className="mt-2 border-2 border-foreground font-black uppercase text-xs">
+                Modify Search
+              </Button>
+            </div>
+          )
         ) : (
           <div className="grid gap-6 md:grid-cols-3">
             {cheapDates.map((d, i) => (

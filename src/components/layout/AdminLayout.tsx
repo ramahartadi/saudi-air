@@ -14,7 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
-  Activity
+  Activity,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +60,7 @@ export function AdminLayout({ children, showSearch = true }: AdminLayoutProps) {
     { label: 'Airlines', icon: Plane, href: '/admin/airlines' },
     { label: 'Bookings', icon: ClipboardList, href: '/admin/bookings' },
     { label: 'Flights', icon: Plane, href: '/admin/flights' },
+    { label: 'Hotel Groups', icon: Building2, href: '/admin/hotel-chains' },
     { label: 'SearchApi', icon: Activity, href: '/admin/searchapi' },
     { label: 'Settings', icon: Settings, href: '/admin/settings' },
   ];
