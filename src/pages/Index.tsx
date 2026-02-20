@@ -29,14 +29,14 @@ const Index = () => {
           <div className="max-w-3xl mx-auto text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-foreground bg-white mb-6 font-black text-xs uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <Compass className="h-4 w-4 text-primary" />
-              ULTIMATE TRAVEL COMMAND CENTER
+              ELITE TRAVEL SOLUTIONS
             </div>
             <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6 uppercase italic leading-[0.9]">
               Your Journey<br />
               <span className="text-primary stroke-foreground">Defined By You</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto font-bold uppercase tracking-tight">
-              Flights, Hotels, and Logistics. Fast, secure, and brutally transparent.
+              Global flight and hotel bookings. Fast, secure, and completely transparent.
             </p>
           </div>
 
@@ -78,9 +78,9 @@ const Index = () => {
         <div className="container">
           <div className="grid gap-10 md:grid-cols-3">
             {[
-              { icon: Shield, title: 'Secure Booking', desc: 'Bank-grade encryption for all your flight transactions.' },
-              { icon: Clock, title: 'Real-Time Sync', desc: 'Connect directly to Amadeus GDS for accurate availability.' },
-              { icon: CreditCard, title: 'No Hidden Fees', desc: 'Transparent pricing with Neo-Brutalist clarity.' },
+              { icon: Shield, title: 'Secure Booking', desc: 'Your data and transactions are protected with top-tier security.' },
+              { icon: Clock, title: 'Real-Time Sync', desc: 'Get the most accurate flight and hotel availability in an instant.' },
+              { icon: CreditCard, title: 'No Hidden Fees', desc: 'What you see is what you pay. No surprises at checkout.' },
             ].map((feature, i) => (
               <div key={i} className="p-8 border-4 border-foreground bg-secondary shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
                 <div className="h-16 w-16 border-4 border-foreground bg-primary flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
