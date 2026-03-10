@@ -16,7 +16,8 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [discounts, setDiscounts] = useState({
     agent: 10,
-    user: 5
+    user: 5,
+    guest: 0
   });
   const [currency, setCurrency] = useState({
     eurToIdr: 17500
@@ -39,7 +40,7 @@ export default function AdminSettings() {
         .single();
 
       if (discData?.value) {
-        setDiscounts(discData.value);
+        setDiscounts(prev => ({ ...prev, ...discData.value }));
       }
 
       // Fetch Currency
@@ -139,6 +140,20 @@ export default function AdminSettings() {
                     className="border-2 border-foreground h-14 text-2xl font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                   <p className="text-[10px] font-bold text-emerald-700 uppercase">Applied to all standard verified customers</p>
+                </div>
+
+                <div className="space-y-4 p-6 border-4 border-foreground bg-slate-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Globe className="h-5 w-5 text-slate-600" />
+                    <Label className="font-black uppercase text-sm">Guest Discount (%)</Label>
+                  </div>
+                  <Input 
+                    type="number"
+                    value={discounts.guest}
+                    onChange={(e) => setDiscounts({...discounts, guest: Number(e.target.value)})}
+                    className="border-2 border-foreground h-14 text-2xl font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                  <p className="text-[10px] font-bold text-slate-700 uppercase">Applied to unauthenticated public visitors</p>
                 </div>
               </div>
             </CardContent>

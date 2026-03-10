@@ -31,20 +31,25 @@ export default function FlightsPage() {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [cheapDates, setCheapDates] = useState<CheapDate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [discountRate, setDiscountRate] = useState<number | null>(null);
   const [eurRate, setEurRate] = useState<number | null>(null);
   const [selectedOutbound, setSelectedOutbound] = useState<Flight | null>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const { data } = await supabase.from('app_settings').select('value').eq('id', 'currency').single();
-        if (data?.value?.eurToIdr !== undefined) {
-          setEurRate(data.value.eurToIdr || 1);
+        const { data: discData } = await supabase.from('app_settings').select('value').eq('id', 'discounts').single();
+        setDiscountRate(discData?.value?.guest ?? 0);
+
+        const { data: currData } = await supabase.from('app_settings').select('value').eq('id', 'currency').single();
+        if (currData?.value?.eurToIdr !== undefined) {
+          setEurRate(currData.value.eurToIdr || 1);
         } else {
           setEurRate(1);
         }
       } catch (err) {
         console.error("Settings fetch error:", err);
+        setDiscountRate(0);
         setEurRate(1);
       }
     };
@@ -111,6 +116,8 @@ export default function FlightsPage() {
     const durationStr = `${hours}h ${minutes}m`;
 
     const rawPrice = offer.price || 0;
+    const effectiveDiscount = discountRate || 0;
+    const priceAfterDiscount = rawPrice * (1 - (effectiveDiscount / 100));
     
     // Manual Baggage Logic
     const airlineCode = firstOut?.flight_number?.split(' ')[0];
@@ -143,7 +150,9 @@ export default function FlightsPage() {
       },
       duration: durationStr,
       stops: outboundSegments.length - 1,
-      price: rawPrice,
+      price: priceAfterDiscount,
+      originalPrice: rawPrice,
+      discountPercent: discountRate,
       currency: 'IDR',
       class: (offer.type || 'Economy').toLowerCase() as any,
       baggage: manualBaggage || "20kg included",
@@ -255,11 +264,11 @@ export default function FlightsPage() {
   useEffect(() => {
     // Only fetch for guests (no role) OR admins (since they stay on this page)
     const isAllowedToSearch = !role || role === 'admin';
-    if (!authLoading && isAllowedToSearch && origin && destination && eurRate !== null) {
+    if (!authLoading && isAllowedToSearch && origin && destination && discountRate !== null && eurRate !== null) {
       if (departureDate) initialSearch();
       else fetchCheapestDates();
     }
-  }, [role, authLoading, origin, destination, departureDate, returnDate, tripType, eurRate]);
+  }, [role, authLoading, origin, destination, departureDate, returnDate, tripType, discountRate, eurRate]);
 
   const fetchCheapestDates = async () => {
     setLoading(false);
@@ -304,6 +313,7 @@ export default function FlightsPage() {
                 <div><span className="text-muted-foreground mr-1">Dest:</span> {destination || 'NULL'}</div>
                 <div><span className="text-muted-foreground mr-1">Date:</span> {departureDate || 'NULL'}</div>
                 <div><span className="text-muted-foreground mr-1">Role:</span> {role || 'GUEST'}</div>
+                <div><span className="text-muted-foreground mr-1">Disc:</span> {discountRate}%</div>
                 <div><span className="text-muted-foreground mr-1">EUR/IDR:</span> {eurRate || 'NULL'}</div>
                 <div><span className="text-muted-foreground mr-1">Flights:</span> {flights.length}</div>
                 <div><span className="text-muted-foreground mr-1">Loading:</span> {loading ? 'YES' : 'NO'}</div>
@@ -326,7 +336,7 @@ export default function FlightsPage() {
                 {origin} <Plane className="h-8 w-8 text-primary" /> {destination}
               </h1>
               <p className="font-bold text-muted-foreground uppercase text-xs mt-2 bg-secondary inline-block px-2 py-1 border border-foreground">
-                Public Search Mode • {tripType.toUpperCase()} • {departureDate}
+                Public Search Mode • {tripType.toUpperCase()} • {departureDate} • {discountRate}% DISCOUNT APPLIED
               </p>
             </div>
             <div className="flex items-end">
@@ -342,7 +352,7 @@ export default function FlightsPage() {
           </div>
         </div>
 
-        {loading ? (
+        {loading || discountRate === null ? (
           <div className="py-20 text-center flex flex-col items-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
             <p className="font-black uppercase tracking-widest italic">Syncing with Google Network...</p>
