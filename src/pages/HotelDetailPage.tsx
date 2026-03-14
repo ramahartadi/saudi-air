@@ -24,6 +24,8 @@ interface Hotel {
   name: string;
   description?: string;
   price?: number;
+  originalPrice?: number;
+  discountPercent?: number;
   currency?: string;
   rating?: number;
   reviews?: number;
@@ -227,8 +229,20 @@ export default function HotelDetailPage() {
           {/* RIGHT COLUMN: Booking Sidebar */}
           <div className="space-y-8">
             <div className="bg-white border-4 border-foreground p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] sticky top-8">
-              <div className="mb-8 p-6 bg-primary text-primary-foreground border-4 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <div className="mb-8 p-6 bg-primary text-primary-foreground border-4 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative">
+                {hotel.discountPercent && hotel.discountPercent > 0 && (
+                  <div className="absolute -top-3 -right-3 bg-rose-500 text-white border-2 border-foreground px-3 py-1 font-black transform rotate-12 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase text-xs z-10 animate-pulse">
+                    Save {hotel.discountPercent}%
+                  </div>
+                )}
                 <p className="text-xs font-black uppercase tracking-widest mb-1 opacity-80">Mulai dari</p>
+                {hotel.discountPercent && hotel.discountPercent > 0 && hotel.originalPrice && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-bold line-through opacity-70">
+                      {hotel.currency} {hotel.originalPrice?.toLocaleString()}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black">{hotel.currency} {hotel.price?.toLocaleString()}</span>
                   <span className="text-sm font-bold opacity-80">/malam</span>

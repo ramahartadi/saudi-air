@@ -3,7 +3,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Loader2, MapPin, Star, Building2, ExternalLink, ArrowRight } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { ArrowLeft, Loader2, MapPin, Star, Building2, ExternalLink, ArrowRight, Percent } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Hotel {
@@ -11,6 +12,8 @@ interface Hotel {
   name: string;
   description?: string;
   price?: number;
+  originalPrice?: number;
+  discountPercent?: number;
   currency?: string;
   rating?: number;
   reviews?: number;
@@ -37,8 +40,26 @@ export default function HotelsPage() {
   const rooms = searchParams.get('rooms') || '1';
   const chains = searchParams.get('chains') || '';
   
+  const { role } = useAuth();
+  
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [discountRate, setDiscountRate] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data: discData } = await supabase.from('app_settings').select('value').eq('id', 'hotel_discounts').single();
+        const discounts = discData?.value || { agent: 0, user: 0, guest: 0 };
+        const rate = discounts[role || 'guest'] || 0;
+        setDiscountRate(rate);
+      } catch (err) {
+        console.error("Settings Fetch Error:", err);
+        setDiscountRate(0);
+      }
+    };
+    fetchSettings();
+  }, [role]);
 
   const fetchHotels = async () => {
     setLoading(true);
@@ -70,12 +91,18 @@ export default function HotelsPage() {
         if (data.brands) {
           console.log('DISCOVERED BRANDS (Use these IDs in Admin):', data.brands);
         }
-        const mappedHotels = data.properties.map((h: any) => ({
-          id: h.property_token || h.data_id || Math.random().toString(36).substr(2, 9),
-          name: h.name,
-          description: h.description,
-          price: h.price_per_night?.extracted_price || 0,
-          currency: 'IDR',
+        const effectiveDiscount = discountRate || 0;
+        const mappedHotels = data.properties.map((h: any) => {
+          const rawPrice = h.price_per_night?.extracted_price || 0;
+          const priceAfterDiscount = rawPrice * (1 - (effectiveDiscount / 100));
+          return {
+            id: h.property_token || h.data_id || Math.random().toString(36).substr(2, 9),
+            name: h.name,
+            description: h.description,
+            price: priceAfterDiscount,
+            originalPrice: rawPrice,
+            discountPercent: effectiveDiscount,
+            currency: 'IDR',
           rating: h.rating,
           reviews: h.reviews,
           thumbnail: h.images?.[0]?.thumbnail || h.thumbnail,
@@ -88,7 +115,8 @@ export default function HotelsPage() {
           images: h.images || [],
           nearby_places: h.nearby_places || [],
           reviews_breakdown: h.reviews_breakdown || []
-        }));
+          };
+        });
         setHotels(mappedHotels);
       } else {
         toast.error("Tidak ada hotel yang ditemukan.");
@@ -113,10 +141,10 @@ export default function HotelsPage() {
   };
 
   useEffect(() => {
-    if (location && checkIn && checkOut) {
+    if (location && checkIn && checkOut && discountRate !== null) {
       fetchHotels();
     }
-  }, [location, checkIn, checkOut, chains]);
+  }, [location, checkIn, checkOut, chains, discountRate]);
 
   return (
     <Layout>
@@ -143,11 +171,16 @@ export default function HotelsPage() {
                   ))}
                 </div>
               )}
+              {discountRate !== null && discountRate > 0 && (
+                <p className="font-bold text-rose-500 uppercase text-xs mt-2 bg-secondary inline-block px-2 py-1 border border-foreground">
+                  Enjoy {discountRate}% OFF ({role} discount)
+                </p>
+              )}
             </div>
           </div>
         </div>
 
-        {loading ? (
+        {loading || discountRate === null ? (
           <div className="py-20 text-center flex flex-col items-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
             <p className="font-black uppercase tracking-widest italic">Mengecek ketersediaan hotel...</p>
@@ -166,17 +199,27 @@ export default function HotelsPage() {
                   )}
                   {hotel.hotel_class && (
                     <div className="absolute top-4 left-4 bg-white border-2 border-foreground px-2 py-0.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                      <div className="flex items-center gap-0.5">
-                        {[...Array(hotel.hotel_class)].map((_, i) => (
-                          <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
+                    <div className="flex items-center gap-0.5">
+                      {[...Array(hotel.hotel_class)].map((_, i) => (
+                        <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      ))}
                     </div>
+                  </div>
+                )}
+                <div className="absolute bottom-4 right-4 flex flex-col items-end">
+                  {hotel.discountPercent && hotel.discountPercent > 0 && hotel.originalPrice && (
+                    <span className="text-xs font-bold line-through text-white/80 bg-black/50 px-2 py-0.5 backdrop-blur-sm mb-1">
+                      {hotel.currency} {hotel.originalPrice?.toLocaleString()}
+                    </span>
                   )}
-                  <div className="absolute bottom-4 right-4 bg-primary text-primary-foreground border-2 border-foreground font-black px-3 py-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    {hotel.currency} {hotel.price?.toLocaleString()}<span className="text-[10px] font-bold">/malam</span>
+                  <div className="bg-primary text-primary-foreground border-2 border-foreground font-black px-3 py-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2">
+                    {hotel.discountPercent && hotel.discountPercent > 0 && (
+                      <Percent className="h-3 w-3 animate-pulse" />
+                    )}
+                    <span>{hotel.currency} {hotel.price?.toLocaleString()}<span className="text-[10px] font-bold">/malam</span></span>
                   </div>
                 </div>
+              </div>
                 
                 <div className="p-6 flex-1 flex flex-col">
                   <h3 className="text-xl font-black uppercase leading-tight mb-2 italic tracking-tighter group-hover:text-primary transition-colors">

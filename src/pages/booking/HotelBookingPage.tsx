@@ -25,6 +25,8 @@ interface Hotel {
   id: string;
   name: string;
   price?: number;
+  originalPrice?: number;
+  discountPercent?: number;
   currency?: string;
   address?: string;
   thumbnail?: string;
@@ -299,9 +301,15 @@ export default function HotelBookingPage() {
                   <CardTitle className="text-sm font-black uppercase tracking-widest italic">Rincian Harga</CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-4">
+                  {hotel.discountPercent && hotel.discountPercent > 0 && hotel.originalPrice && (
+                    <div className="flex justify-between items-center text-sm text-rose-500">
+                      <span className="font-bold uppercase tracking-tight">Diskon Diterapkan ({hotel.discountPercent}%)</span>
+                      <span className="font-bold line-through text-muted-foreground">{hotel.currency} {(hotel.originalPrice * rooms).toLocaleString()}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-muted-foreground uppercase tracking-tight">Kamar x {rooms}</span>
-                    <span className="font-black">{hotel.currency} {hotel.price?.toLocaleString()}</span>
+                    <span className="font-black">{hotel.currency} {(hotel.price! * rooms).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-muted-foreground uppercase tracking-tight">Durasi {numberOfNights} Malam</span>

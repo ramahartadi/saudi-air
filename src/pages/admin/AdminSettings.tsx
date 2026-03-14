@@ -19,6 +19,11 @@ export default function AdminSettings() {
     user: 5,
     guest: 0
   });
+  const [hotelDiscounts, setHotelDiscounts] = useState({
+    agent: 10,
+    user: 5,
+    guest: 0
+  });
   const [currency, setCurrency] = useState({
     eurToIdr: 17500
   });
@@ -32,7 +37,7 @@ export default function AdminSettings() {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      // Fetch Discounts
+      // Fetch Flight Discounts
       const { data: discData } = await supabase
         .from('app_settings')
         .select('*')
@@ -41,6 +46,17 @@ export default function AdminSettings() {
 
       if (discData?.value) {
         setDiscounts(prev => ({ ...prev, ...discData.value }));
+      }
+
+      // Fetch Hotel Discounts
+      const { data: hotelDiscData } = await supabase
+        .from('app_settings')
+        .select('*')
+        .eq('id', 'hotel_discounts')
+        .single();
+
+      if (hotelDiscData?.value) {
+        setHotelDiscounts(prev => ({ ...prev, ...hotelDiscData.value }));
       }
 
       // Fetch Currency
@@ -66,17 +82,22 @@ export default function AdminSettings() {
     try {
       const timestamp = new Date().toISOString();
       
-      // Save Discounts
+      // Save Flight Discounts
       const { error: discError } = await supabase
         .from('app_settings')
         .upsert({ id: 'discounts', value: discounts, updated_at: timestamp });
+
+      // Save Hotel Discounts
+      const { error: hotelDiscError } = await supabase
+        .from('app_settings')
+        .upsert({ id: 'hotel_discounts', value: hotelDiscounts, updated_at: timestamp });
 
       // Save Currency
       const { error: currError } = await supabase
         .from('app_settings')
         .upsert({ id: 'currency', value: currency, updated_at: timestamp });
 
-      if (discError || currError) throw (discError || currError);
+      if (discError || hotelDiscError || currError) throw (discError || hotelDiscError || currError);
 
       toast.success("All settings updated successfully!");
     } catch (err: any) {
@@ -104,12 +125,12 @@ export default function AdminSettings() {
             <CardHeader className="bg-foreground text-white border-b-4 border-foreground">
               <CardTitle className="uppercase font-black italic flex items-center gap-3">
                 <Percent className="h-6 w-6" />
-                Global Discount Rates
+                Flight Discount Rates
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8 space-y-8">
               <p className="font-bold text-sm text-muted-foreground uppercase leading-relaxed">
-                Set percentage-based discounts that will be applied to live prices fetched from Amadeus API. 
+                Set percentage-based discounts that will be applied to flight live prices fetched from Amadeus API. 
                 These discounts are automatically calculated based on the logged-in user's role.
               </p>
 
@@ -151,6 +172,66 @@ export default function AdminSettings() {
                     type="number"
                     value={discounts.guest}
                     onChange={(e) => setDiscounts({...discounts, guest: Number(e.target.value)})}
+                    className="border-2 border-foreground h-14 text-2xl font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                  <p className="text-[10px] font-bold text-slate-700 uppercase">Applied to unauthenticated public visitors</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Hotel Discount Settings Card */}
+          <Card className="border-4 border-foreground shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none bg-white overflow-hidden">
+            <CardHeader className="bg-emerald-600 text-white border-b-4 border-foreground">
+              <CardTitle className="uppercase font-black italic flex items-center gap-3">
+                <Percent className="h-6 w-6" />
+                Hotel Discount Rates
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <p className="font-bold text-sm text-muted-foreground uppercase leading-relaxed">
+                Set percentage-based discounts that will be applied to hotel live prices. 
+                These discounts are automatically calculated based on the logged-in user's role.
+              </p>
+
+              <div className="grid gap-8 md:grid-cols-2">
+                <div className="space-y-4 p-6 border-4 border-foreground bg-indigo-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ShieldCheck className="h-5 w-5 text-indigo-600" />
+                    <Label className="font-black uppercase text-sm">Agent Hotel Discount (%)</Label>
+                  </div>
+                  <Input 
+                    type="number"
+                    value={hotelDiscounts.agent}
+                    onChange={(e) => setHotelDiscounts({...hotelDiscounts, agent: Number(e.target.value)})}
+                    className="border-2 border-foreground h-14 text-2xl font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                  <p className="text-[10px] font-bold text-indigo-700 uppercase">Applied to all accounts with 'agent' role</p>
+                </div>
+
+                <div className="space-y-4 p-6 border-4 border-foreground bg-emerald-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <User className="h-5 w-5 text-emerald-600" />
+                    <Label className="font-black uppercase text-sm">Standard User Hotel Discount (%)</Label>
+                  </div>
+                  <Input 
+                    type="number"
+                    value={hotelDiscounts.user}
+                    onChange={(e) => setHotelDiscounts({...hotelDiscounts, user: Number(e.target.value)})}
+                    className="border-2 border-foreground h-14 text-2xl font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                  <p className="text-[10px] font-bold text-emerald-700 uppercase">Applied to all standard verified customers</p>
+                </div>
+
+                <div className="space-y-4 p-6 border-4 border-foreground bg-slate-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Globe className="h-5 w-5 text-slate-600" />
+                    <Label className="font-black uppercase text-sm">Guest Hotel Discount (%)</Label>
+                  </div>
+                  <Input 
+                    type="number"
+                    value={hotelDiscounts.guest}
+                    onChange={(e) => setHotelDiscounts({...hotelDiscounts, guest: Number(e.target.value)})}
                     className="border-2 border-foreground h-14 text-2xl font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                   <p className="text-[10px] font-bold text-slate-700 uppercase">Applied to unauthenticated public visitors</p>
