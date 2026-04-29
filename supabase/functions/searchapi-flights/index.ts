@@ -46,7 +46,7 @@ serve(async (req) => {
     if (action === 'search-flights' || action === 'get-featured') {
       // Fetch active airlines and flight settings
       const [airlinesRes, settingsRes] = await Promise.all([
-        adminClient.from('managed_airlines').select('code, baggage_info').eq('is_active', true),
+        adminClient.from('managed_airlines').select('code, name, baggage_info').eq('is_active', true),
         adminClient.from('app_settings').select('value').eq('id', 'flight_settings').single()
       ])
 
@@ -64,7 +64,9 @@ serve(async (req) => {
         engine: 'google_flights',
         api_key: SEARCHAPI_API_KEY,
         currency: 'IDR',
-        adults: '1'
+        adults: '1',
+        hl: 'en', // Added for consistency with manual search
+        gl: 'us'  // Added for consistency with manual search
       }
       
       if (action === 'get-featured') {
@@ -119,17 +121,13 @@ serve(async (req) => {
       }
 
       console.log(`SearchApi Raw Result: ${data.best_flights?.length || 0} best, ${data.other_flights?.length || 0} other.`)
-      
-      if (data.best_flights?.length > 0) {
-        console.log('Sample Best Flight (Keys):', Object.keys(data.best_flights[0]))
-      } else if (data.other_flights?.length > 0) {
-        console.log('Sample Other Flight (Keys):', Object.keys(data.other_flights[0]))
-      }
 
       // Filter by price as requested: only flights with a valid price are kept.
       const filterFlight = (f: any) => {
         const price = f.price || 0;
-        return price > 0 && price <= applicableLimit;
+        const inLimit = price > 0 && price <= applicableLimit;
+        if (!inLimit) console.log(`Filtering out flight priced ${price} (Limit: ${applicableLimit})`);
+        return inLimit;
       }
 
       if (data.best_flights) {

@@ -141,7 +141,7 @@ export default function UserFlightsPage() {
       originalPrice: rawPrice,
       discountPercent: discountRate,
       currency: 'IDR',
-      class: (offer.type || 'Economy').toLowerCase() as any,
+      class: (firstOut?.travel_class || offer.type || 'Economy').toLowerCase() as any,
       baggage: manualBaggage || "20kg included",
       aircraft: firstOut?.airplane || 'N/A',
       extensions: firstOut?.extensions || [],
