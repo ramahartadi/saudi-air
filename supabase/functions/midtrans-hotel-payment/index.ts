@@ -11,8 +11,18 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Handle GET (For verification/testing)
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({ status: 'active', message: 'Midtrans Hotel Payment Edge Function is running' }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200 
+    })
+  }
+
   try {
-    const { action, bookingId, customerDetails } = await req.json()
+    const body = await req.json()
+    console.log('Received payment request payload:', JSON.stringify(body))
+    const { bookingId, customerDetails } = body
     
     const MIDTRANS_SERVER_KEY = Deno.env.get('MIDTRANS_SERVER_KEY')
     const IS_PRODUCTION = Deno.env.get('MIDTRANS_IS_PRODUCTION') === 'true'
@@ -52,10 +62,10 @@ serve(async (req) => {
       },
       item_details: [
         {
-          id: booking.hotel_id,
+          id: booking.hotel_id || booking.id,
           price: finalAmount,
           quantity: 1,
-          name: booking.hotel_name.substring(0, 50)
+          name: (booking.hotel_name || 'Hotel Stay').substring(0, 50)
         }
       ],
       expiry: {
@@ -63,6 +73,8 @@ serve(async (req) => {
         duration: 30
       }
     }
+
+    console.log('Requesting token from Midtrans with payload:', JSON.stringify(payload))
 
     // 3. Request to Midtrans
     const response = await fetch(SNAP_URL, {
@@ -76,10 +88,13 @@ serve(async (req) => {
     })
 
     const data = await response.json()
-    if (!response.ok) throw new Error(data.error_messages?.join(', ') || 'Midtrans Error')
+    if (!response.ok) {
+      console.error('Midtrans API Error:', data)
+      throw new Error(data.error_messages?.join(', ') || 'Midtrans Error')
+    }
 
     // 4. Update Booking with token
-    await supabase
+    const { error: updateError } = await supabase
       .from('hotel_bookings')
       .update({
         midtrans_token: data.token,
@@ -87,12 +102,17 @@ serve(async (req) => {
       })
       .eq('id', bookingId)
 
+    if (updateError) {
+      console.warn('Failed to update booking with midtrans token:', updateError)
+    }
+
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
 
   } catch (error: any) {
+    console.error('Midtrans Hotel Payment Error:', error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,

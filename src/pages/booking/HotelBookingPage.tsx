@@ -129,7 +129,21 @@ export default function HotelBookingPage() {
         }
       });
 
-      if (bookingError) throw bookingError;
+      if (bookingError) {
+        // Try to get more details from the error
+        let errorMessage = "Gagal memproses pesanan.";
+        if (bookingError instanceof Error) {
+          try {
+            // Supabase FunctionsHttpError might have a JSON response
+            const body = await (bookingError as any).context?.json();
+            if (body?.error) errorMessage = body.error;
+          } catch (e) {
+            errorMessage = bookingError.message;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
       if (!bookingResult?.bookingId) throw new Error("Gagal membuat data pesanan.");
 
       // Store in session for confirmation display

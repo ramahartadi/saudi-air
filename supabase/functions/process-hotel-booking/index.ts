@@ -31,14 +31,17 @@ serve(async (req) => {
       }
     }
 
-    const { hotelData, guestDetails, roomsCount, totalPrice } = await req.json()
+    const body = await req.json()
+    console.log('Received booking request:', JSON.stringify(body))
 
-    if (!hotelData || !guestDetails || !totalPrice) {
-      throw new Error('Missing required booking data')
-    }
+    const { hotelData, guestDetails, roomsCount, totalPrice } = body
+
+    if (!hotelData) throw new Error('Missing hotelData')
+    if (!guestDetails || !Array.isArray(guestDetails) || guestDetails.length === 0) throw new Error('Missing or invalid guestDetails')
+    if (totalPrice === undefined || totalPrice === null) throw new Error('Missing totalPrice')
 
     // Generate booking reference
-    const bookingRef = 'HTL' + Math.random().toString(36).substr(2, 8).toUpperCase()
+    const bookingRef = 'HTL' + Math.random().toString(36).substring(2, 10).toUpperCase()
 
     // 1. Create Hotel Booking
     const { data: booking, error: bookingError } = await supabase
@@ -50,10 +53,10 @@ serve(async (req) => {
         hotel_address: hotelData.address,
         check_in: hotelData.checkIn,
         check_out: hotelData.checkOut,
-        nights_count: hotelData.nights,
+        nights_count: hotelData.nights || 1,
         rooms_count: roomsCount || 1,
         adults_count: hotelData.adults || 1,
-        total_price: totalPrice,
+        total_price: Math.round(Number(totalPrice)),
         currency: hotelData.currency || 'IDR',
         status: 'Pending',
         booking_reference: bookingRef
@@ -61,7 +64,10 @@ serve(async (req) => {
       .select()
       .single()
 
-    if (bookingError) throw bookingError
+    if (bookingError) {
+      console.error('Database error (hotel_bookings):', bookingError)
+      throw new Error(`Gagal menyimpan data pesanan: ${bookingError.message}`)
+    }
 
     // 2. Create Guest details (using hotel_booking_guests table)
     const guestRecords = guestDetails.map((g: any) => ({
@@ -74,11 +80,9 @@ serve(async (req) => {
     }))
 
     const { error: pError } = await supabase.from('hotel_booking_guests').insert(guestRecords)
-    if (pError) throw pError
-
-    // 3. Trigger Invoice (Optional, can be moved to payment success)
-    if (email) {
-      // Logic for invoice remains similar but with different payload
+    if (pError) {
+      console.error('Database error (hotel_booking_guests):', pError)
+      throw new Error(`Gagal menyimpan data tamu: ${pError.message}`)
     }
 
     return new Response(JSON.stringify({ 
